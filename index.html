@@ -149,6 +149,7 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
   border:1px solid var(--field);border-radius:6px;cursor:pointer;
 }
 .filter{margin-bottom:14px}
+.hint{font-size:13px;color:var(--label);margin-top:4px;min-height:18px}
 .card-total{
   display:flex;justify-content:space-between;align-items:center;
   margin-top:10px;padding:10px 4px 0;border-top:2px solid var(--text);font-weight:700;
@@ -247,6 +248,11 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
         <div class="field">
           <label for="fValor">Valor (R$)</label>
           <input type="text" id="fValor" inputmode="numeric" autocomplete="off" placeholder="0,00">
+        </div>
+        <div class="field" id="fParcWrap">
+          <label for="fParc">Parcelas</label>
+          <select id="fParc"></select>
+          <div class="hint" id="fParcInfo"></div>
         </div>
         <div class="field">
           <label for="fObs">OBS.</label>
@@ -651,7 +657,34 @@ refreshCatSelects();
 attachMask($("fValor"));
 attachMask($("eValor"));
 
+/* ---- Parcelamento ---- */
+for(let i=1;i<=12;i++) addOpt($("fParc"), String(i), i === 1 ? "À vista (1x)" : i + "x");
+function nParcelas(){
+  return $("fTipo").value === "Crédito" ? (parseInt($("fParc").value,10) || 1) : 1;
+}
+function updParc(){
+  const cred = $("fTipo").value === "Crédito";
+  $("fParcWrap").hidden = !cred;
+  const n = nParcelas();
+  const v = digitsToCents($("fValor").value);
+  $("fValor").previousElementSibling.textContent = n > 1 ? "Valor total (R$)" : "Valor (R$)";
+  $("fParcInfo").textContent = (n > 1 && v)
+    ? n + "x de " + brl(Math.floor(v/n)) + " · uma parcela por mês"
+    : "";
+}
+$("fTipo").addEventListener("change", updParc);
+$("fParc").addEventListener("change", updParc);
+$("fValor").addEventListener("input", updParc);
+function addMonths(str, k){
+  const p = str.split("-").map(Number);
+  const last = new Date(p[0], p[1] - 1 + k + 1, 0).getDate();
+  const d = new Date(p[0], p[1] - 1 + k, Math.min(p[2], last));
+  return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+}
+
 function resetForm(){
+  $("fParc").value = "1";
+  updParc();
   $("fCartao").value = "";
   $("fTipo").value = "Crédito";
   $("fCat").value = CAT_DEFAULT;
@@ -687,9 +720,29 @@ $("btnSalvar").addEventListener("click", () => {
   const o = readForm("f");
   const err = validate(o);
   if(err){ toast(err); return; }
-  o.criadoEm = Date.now();
-  const r = push(dbRef);
-  set(r, o).then(() => toast("Gasto salvo.")).catch(onErr);
+  const n = nParcelas();
+  const agora = Date.now();
+  if(n > 1){
+    const grupo = push(dbRef).key;
+    const base = Math.floor(o.valor / n);
+    const resto = o.valor - base * n;
+    const lote = {};
+    for(let i = 0; i < n; i++){
+      lote[push(dbRef).key] = Object.assign({}, o, {
+        descricao: o.descricao + " (" + (i+1) + "/" + n + ")",
+        valor: base + (i === n - 1 ? resto : 0),
+        data: addMonths(o.data, i),
+        parcela: i + 1,
+        parcelas: n,
+        grupo: grupo,
+        criadoEm: agora + i
+      });
+    }
+    update(dbRef, lote).then(() => toast(n + " parcelas lançadas.")).catch(onErr);
+  }else{
+    o.criadoEm = agora;
+    set(push(dbRef), o).then(() => toast("Gasto salvo.")).catch(onErr);
+  }
   resetForm();
 });
 
@@ -864,9 +917,17 @@ $("eSalvar").addEventListener("click", () => {
 });
 $("eExcluir").addEventListener("click", () => {
   if(!editId) return;
-  if(!confirm("Excluir este gasto?")) return;
   const id = editId;
-  remove(ref(db, NODE + "/" + id)).then(() => toast("Gasto excluído.")).catch(onErr);
+  const e = dados[id];
+  let ids = [id];
+  const irmaos = (e && e.grupo) ? lista().filter(x => x.grupo === e.grupo).map(x => x.id) : [];
+  if(irmaos.length > 1){
+    if(confirm("Esta compra tem " + irmaos.length + " parcelas. Excluir TODAS as parcelas?")) ids = irmaos;
+    else if(!confirm("Excluir só esta parcela?")) return;
+  }else if(!confirm("Excluir este gasto?")) return;
+  const lote = {};
+  ids.forEach(i => { lote[i] = null; });
+  update(dbRef, lote).then(() => toast(ids.length > 1 ? "Parcelas excluídas." : "Gasto excluído.")).catch(onErr);
   closeEdit();
 });
 $("eCancelar").addEventListener("click", closeEdit);
