@@ -1,1988 +1,799 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>HARMONIA FUNCIONAL</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#354a5f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Gastos no Cartão</title>
 <style>
 :root{
-  --blue:#0a6ed1;--blue2:#0854a0;--shell:#354a5f;--bg:#f5f6f7;--text:#32363a;
-  --muted:#6a6d70;--border:#d9d9d9;--green:#107e3e;--red:#bb0000;--orange:#e9730c;
-  --shadow:0 1px 4px rgba(0,0,0,.12);
+  --shell:#354a5f;
+  --shell-2:#2b3d4f;
+  --bg:#f7f7f7;
+  --card:#ffffff;
+  --line:#d9d9d9;
+  --field:#89919a;
+  --text:#32363a;
+  --label:#6a6d70;
+  --primary:#0a6ed1;
+  --primary-dark:#085caf;
+  --neg:#bb0000;
+  --pos:#107e3e;
+  --cre-bg:#e5f0fa;
+  --cre-tx:#0854a0;
+  --deb-bg:#e8f5e9;
+  --deb-tx:#107e3e;
 }
-*{box-sizing:border-box;margin:0}
-html,body{min-height:100%;font-family:"72","72full",Arial,Helvetica,sans-serif;color:var(--text);background:var(--bg);font-size:14px}
-body{overflow-x:hidden}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
+html,body{margin:0;padding:0}
+body{
+  font-family:"72","72full",Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:15px;
+  line-height:1.4;
+  min-height:100vh;
+}
+button,input,select{font-family:inherit}
 
-#login{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:20px;
-  background:linear-gradient(135deg,#354a5f 0%,#243746 48%,#0a6ed1 100%)}
-.login-card{width:min(410px,100%);background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.28);overflow:hidden}
-.login-head{background:var(--shell);color:#fff;padding:24px}
-.login-head h1{font-size:20px;font-weight:600}
-.login-head p{margin-top:6px;opacity:.8;font-size:12px}
-.login-body{padding:24px}
-.field{display:block;margin-bottom:14px}
-.field>span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
-input,select,textarea{width:100%;min-height:38px;border:1px solid #89919a;border-radius:4px;padding:8px 10px;background:#fff;color:var(--text)}
-textarea{resize:vertical}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue)}
-button{min-height:36px;border:1px solid var(--blue);border-radius:7px;background:#fff;color:var(--blue);padding:0 14px;font-weight:600}
-button:hover{background:#eaf3fc}
-button.primary{background:var(--blue);color:#fff}
-button.primary:hover{background:var(--blue2)}
-button.danger{color:var(--red);border-color:var(--red)}
-button.icon{border:0;background:transparent;padding:0 8px}
-button:disabled{opacity:.55;cursor:wait}
-#login-error{color:var(--red);font-size:13px;margin-top:8px}
+/* ---------- Tela de PIN ---------- */
+#lock{
+  position:fixed;inset:0;z-index:50;
+  background:var(--shell);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+}
+.lock-box{
+  background:var(--card);
+  width:100%;max-width:340px;
+  border-radius:8px;
+  padding:24px 20px 20px;
+  text-align:center;
+}
+.lock-box h1{font-size:20px;margin:0 0 4px;font-weight:600}
+.lock-box p{margin:0 0 16px;color:var(--label);font-size:14px}
+#dots{display:flex;gap:14px;justify-content:center;margin:6px 0 8px}
+#dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--field);display:block}
+#dots i.on{background:var(--primary);border-color:var(--primary)}
+#lockMsg{min-height:20px;color:var(--neg);font-size:13px;margin-bottom:8px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{
+  height:56px;font-size:22px;background:#fff;color:var(--text);
+  border:1px solid var(--field);border-radius:6px;cursor:pointer;
+}
+.pad button:active{background:#eaf1f9}
+.pad .alt{font-size:14px;color:var(--primary);border-color:var(--line)}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 
-.shell{min-height:100vh}
-.topbar{height:48px;position:sticky;top:0;z-index:20;background:var(--shell);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 18px}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand-icon{width:26px;height:26px;border-radius:5px;background:var(--blue);display:grid;place-items:center;font-weight:700}
-.brand-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top-actions{display:flex;gap:2px}
-.top-actions button{color:#fff;border-color:transparent;background:transparent}
-.top-actions button:hover{background:rgba(255,255,255,.1)}
-.tabs{position:sticky;top:48px;z-index:19;height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 8px}
-.tabs button{min-height:46px;border:0;border-bottom:3px solid transparent;border-radius:0;white-space:nowrap;color:var(--text);background:transparent}
-.tabs button.active{color:var(--blue);border-bottom-color:var(--blue)}
-main{max-width:1280px;margin:auto;padding:18px}
-h2{font-size:20px;font-weight:400;margin:3px 0 14px}
-h3{font-size:16px;font-weight:600}
-.card{background:#fff;border-radius:8px;box-shadow:0 0 0 1px var(--border),var(--shadow);padding:16px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
-.tile{min-height:92px}
-.tile small{color:var(--muted);font-size:12px}
-.tile strong{display:block;margin-top:7px;font-size:24px;font-weight:400}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.toolbar input,.toolbar select{flex:1;min-width:180px}
-.table-wrap{background:#fff;border-radius:8px;box-shadow:0 0 0 1px var(--border);overflow:auto}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;background:#f5f6f7;color:var(--muted);font-size:12px;padding:11px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:11px 12px;border-bottom:1px solid #e5e5e5;vertical-align:middle}
-tbody tr{cursor:pointer}
-tbody tr:hover,tbody tr:focus{background:#f5faff;outline:none}
-tbody tr:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
-.empty{padding:30px;text-align:center;color:var(--muted)}
-.status{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid;font-size:12px;font-weight:600;white-space:nowrap;margin:1px 2px 1px 0}
-.status.gray{color:#5b738b;border-color:#5b738b;background:#f5f6f7}
-.status.orange{color:var(--orange);border-color:var(--orange);background:#fff8e6}
-.status.blue{color:var(--blue);border-color:var(--blue);background:#eaf3fc}
-.status.green{color:var(--green);border-color:var(--green);background:#f1fdf6}
-.status.red{color:var(--red);border-color:var(--red);background:#ffebeb}
-.actions{display:flex;gap:5px;justify-content:flex-end}
-.actions button{min-height:30px;padding:0 9px;font-size:12px}
+/* ---------- Shell ---------- */
+.shell{
+  background:var(--shell);color:#fff;
+  position:sticky;top:0;z-index:10;
+  padding-top:env(safe-area-inset-top,0px);
+}
+.shell-top{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.shell .title{font-size:17px;font-weight:600;flex:1}
+.status{display:flex;align-items:center;gap:6px;font-size:12px;color:#dfe6ed}
+.status .dot{width:9px;height:9px;border-radius:50%;background:#e9730c;display:inline-block}
+.status.ok .dot{background:#2ecc71}
+.ghost{
+  background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);
+  border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;
+}
+.tabs{display:flex;background:var(--shell-2)}
+.tab{
+  flex:1;padding:12px 8px;font-size:15px;color:#cfd8e1;background:transparent;
+  border:0;border-bottom:3px solid transparent;cursor:pointer;
+}
+.tab.active{color:#fff;border-bottom-color:#fff;font-weight:600}
 
-dialog{border:0;border-radius:12px;padding:0;width:min(900px,96vw);max-height:92vh;box-shadow:0 12px 45px rgba(0,0,0,.35)}
-dialog::backdrop{background:rgba(0,0,0,.5)}
-dialog[open]{display:flex;flex-direction:column}
-.dialog-head{min-height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 18px;border-bottom:1px solid var(--border)}
-.dialog-body{padding:18px;overflow:auto}
-.dialog-foot{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--border);background:#fafafa}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.full{grid-column:1/-1}
-.section{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;font-weight:600}
-.item-row,.payment-row{display:grid;gap:7px;align-items:center;margin-bottom:7px}
-.item-row{grid-template-columns:3fr 2fr 70px 120px 34px}
-.payment-row{grid-template-columns:1fr 130px 150px 34px}
-.total-box{text-align:right;padding:12px 0;font-size:15px}
-.total-box b{font-size:16px}
-#toast{position:fixed;z-index:100;left:50%;bottom:25px;transform:translateX(-50%);background:#32363a;color:#fff;border-radius:7px;padding:11px 18px;box-shadow:0 4px 15px rgba(0,0,0,.25)}
+main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-inset-bottom,0px))}
 
-@media(max-width:700px){
-  .topbar{padding-left:10px}
-  .brand-title{font-size:13px}
-  main{padding:10px}
-  .tiles{grid-template-columns:repeat(2,1fr);gap:8px}
-  .tile{padding:12px;min-height:82px}
-  .tile strong{font-size:20px}
-  table,thead,tbody,tr,td{display:block}
-  thead{display:none}
-  tbody tr{padding:8px 0;border-bottom:1px solid var(--border)}
-  td{border:0;padding:4px 12px;display:flex;justify-content:space-between;gap:15px;text-align:right}
-  td::before{content:attr(data-label);color:var(--muted);text-align:left;font-size:12px}
-  dialog,dialog[open]{width:100%;max-width:none;height:100dvh;max-height:100dvh;border-radius:0}
-  .item-row{grid-template-columns:1fr 1fr 34px}
-  .item-row input:nth-child(1),.item-row input:nth-child(2){grid-column:1/-1}
-  .payment-row{grid-template-columns:1fr 34px}
-  .payment-row input:first-child{grid-column:1/-1}
-  .payment-row select{grid-column:1}
-  .toolbar{flex-direction:column}
-  .toolbar input,.toolbar select,.toolbar button{width:100%}
+/* ---------- Cards e formulário ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:14px;margin-bottom:14px;
+}
+.card h2{font-size:16px;margin:0 0 12px;font-weight:600}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--label);margin-bottom:4px}
+.field input,.field select{
+  width:100%;height:46px;padding:0 12px;font-size:16px;color:var(--text);
+  background:#fff;border:1px solid var(--field);border-radius:6px;
+}
+.field input:focus,.field select:focus{outline:2px solid var(--primary);outline-offset:0;border-color:var(--primary)}
+.row2{display:grid;grid-template-columns:1fr;gap:0 12px}
+@media(min-width:600px){.row2{grid-template-columns:1fr 1fr}}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:46px;padding:0 18px;font-size:16px;font-weight:600;
+  border-radius:6px;border:1px solid var(--primary);cursor:pointer;
+  background:var(--primary);color:#fff;
+}
+.btn:active{background:var(--primary-dark)}
+.btn.block{width:100%}
+.btn.sec{background:#fff;color:var(--primary)}
+.btn.danger{background:#fff;color:var(--neg);border-color:var(--neg)}
+.link{background:none;border:0;color:var(--primary);font-size:14px;cursor:pointer;padding:6px 0}
+
+/* ---------- Linhas de lançamentos ---------- */
+.row{
+  display:flex;gap:10px;justify-content:space-between;align-items:flex-start;
+  padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;
+}
+.row:last-child{border-bottom:0}
+.row:active,.row:focus{background:#eaf1f9;outline:0}
+.r-main{min-width:0;flex:1}
+.r-desc{font-weight:600;word-break:break-word}
+.r-meta{font-size:13px;color:var(--label);margin-top:2px}
+.r-obs{font-size:13px;color:var(--label);margin-top:2px;font-style:italic;word-break:break-word}
+.r-val{font-weight:600;white-space:nowrap}
+.badge{
+  display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;margin-left:4px;
+}
+.badge.cre{background:var(--cre-bg);color:var(--cre-tx)}
+.badge.deb{background:var(--deb-bg);color:var(--deb-tx)}
+.empty{color:var(--label);padding:8px 4px;font-size:14px}
+
+/* ---------- Relatório ---------- */
+.monthnav{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;
+}
+.monthnav .m-label{font-size:17px;font-weight:600;text-align:center;flex:1}
+.monthnav button{
+  width:46px;height:46px;font-size:22px;background:#fff;color:var(--primary);
+  border:1px solid var(--field);border-radius:6px;cursor:pointer;
+}
+.card-total{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:10px;padding:10px 4px 0;border-top:2px solid var(--text);font-weight:700;
+}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.card-head h2{margin:0}
+.card-head span{font-size:13px;color:var(--label)}
+.grand{
+  background:var(--shell);color:#fff;border-radius:8px;padding:14px;
+  display:flex;justify-content:space-between;font-weight:700;font-size:17px;
 }
 
-/* ---------- MAIÚSCULAS / VALIDAÇÃO ---------- */
-input:not([type=password]):not([type=date]):not([data-mask=email]),textarea,select{text-transform:uppercase}
-td{text-transform:uppercase}
-td[data-label="E-MAIL"]{text-transform:none}
-input.invalid{border-color:var(--red);outline-color:var(--red);background:#fff5f5}
-
-/* ---------- RELATÓRIO ---------- */
-.rpt{overflow-x:auto}
-.rpt h4{margin:18px 0 8px;font-size:14px}
-.rpt .num{text-align:right;white-space:nowrap}
-.rpt tbody tr{cursor:default}
-.rpt tbody tr:hover{background:none}
-.rpt tfoot td{font-weight:700;background:#f5f6f7}
-@media(max-width:700px){
-  .rpt table{display:table}
-  .rpt thead{display:table-header-group}
-  .rpt tbody{display:table-row-group}
-  .rpt tfoot{display:table-footer-group}
-  .rpt tr{display:table-row;padding:0;border:0}
-  .rpt th,.rpt td{display:table-cell;border-bottom:1px solid #e5e5e5;padding:8px;text-align:left;white-space:nowrap}
-  .rpt td::before{content:none}
-  .rpt .num{text-align:right}
+/* ---------- Modal de edição ---------- */
+#modal{
+  position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);
+  display:flex;align-items:flex-end;justify-content:center;
 }
-
-/* ---------- IMPRESSÃO ---------- */
-#print-area{display:none}
-@media print{
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body>*{display:none!important}
-  #print-area{display:block!important}
-  @page{size:A4;margin:12mm}
-  .print-page{color:#111;font-family:Arial,Helvetica,sans-serif;font-size:11px}
-  .print-header{background:#354a5f;color:#fff;padding:14px;margin-bottom:15px}
-  .print-header h1{font-size:18px;margin-bottom:5px}
-  .print-header p{font-size:9px}
-  .print-title{font-size:16px;font-weight:bold;margin:12px 0}
-  .print-info{width:100%;border-collapse:collapse;margin-bottom:15px}
-  .print-info td{border:0;padding:3px;display:table-cell}
-  .print-info td:first-child{width:35mm;font-weight:bold}
-  .print-items{width:100%;border-collapse:collapse}
-  .print-items th{background:#0a6ed1;color:#fff;padding:7px}
-  .print-items td{padding:7px;border:1px solid #ddd;display:table-cell}
-  .print-total{margin-left:auto;width:75mm;margin-top:12px}
-  .print-total div{display:flex;justify-content:space-between;padding:3px;font-weight:bold}
-  .print-signatures{display:flex;justify-content:space-between;margin-top:65px}
-  .signature{width:70mm;text-align:center;border-top:1px solid #111;padding-top:5px}
-  .print-page{text-transform:uppercase}
-  .rpt{overflow:visible}
-  .rpt table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:14px}
-  .rpt th{background:#0a6ed1;color:#fff;padding:5px}
-  .rpt td{padding:5px;border:1px solid #ddd;display:table-cell}
-  .rpt td::before{content:none}
-  .rpt tr{page-break-inside:avoid}
-  .rpt tfoot td{background:#eee}
-  .rpt h4{font-size:12px}
+.sheet{
+  background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;
+  border-radius:12px 12px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom,0px));
 }
+@media(min-width:600px){
+  #modal{align-items:center}
+  .sheet{border-radius:10px}
+}
+.sheet h2{font-size:17px;margin:0 0 12px}
+.sheet .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.sheet .actions .full{grid-column:1 / -1}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%);background:#32363a;color:#fff;
+  padding:11px 16px;border-radius:6px;font-size:14px;z-index:60;
+  max-width:90vw;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+#toast.show{opacity:1}
+.foot{text-align:center;margin-top:4px}
 </style>
 </head>
-
 <body>
 
-<div id="login">
-  <div class="login-card">
-    <div class="login-head">
-      <h1>LABORATÓRIO HARMONIA FUNCIONAL</h1>
-      <p>GESTÃO DE ORDENS DE SERVIÇO</p>
-    </div>
-    <div class="login-body">
-      <label class="field">
-        <span>SENHA</span>
-        <input id="password" type="password" autocomplete="current-password" autofocus>
-      </label>
-      <div id="login-error" hidden></div>
-      <button id="login-button" class="primary" style="width:100%;margin-top:8px">ENTRAR</button>
+<!-- Tela de PIN -->
+<div id="lock">
+  <div class="lock-box" id="lockBox">
+    <h1>Gastos no Cartão</h1>
+    <p>Digite o PIN para entrar</p>
+    <div id="dots"><i></i><i></i><i></i><i></i></div>
+    <div id="lockMsg"></div>
+    <div class="pad" id="pad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="alt" id="btnBioLock" hidden>Biometria</button>
+      <button data-k="0" id="pad0">0</button>
+      <button class="alt" id="btnBack">Apagar</button>
     </div>
   </div>
 </div>
 
+<!-- App -->
 <div id="app" hidden>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-icon">H</div>
-      <div class="brand-title">LABORATÓRIO HARMONIA FUNCIONAL</div>
+  <header class="shell">
+    <div class="shell-top">
+      <span class="title">Gastos no Cartão</span>
+      <span class="status" id="status"><i class="dot"></i><span id="statusTxt">Conectando...</span></span>
+      <button class="ghost" id="btnLock">Bloquear</button>
     </div>
-    <div class="top-actions">
-      <button data-action="config">⚙ DADOS</button>
-      <button data-action="logout">SAIR</button>
-    </div>
+    <nav class="tabs">
+      <button class="tab active" id="tabLancar">Lançar</button>
+      <button class="tab" id="tabRel">Relatório</button>
+    </nav>
   </header>
-  <nav id="tabs" class="tabs"></nav>
-  <main id="content"></main>
+
+  <main>
+    <!-- Tela de lançamento -->
+    <section id="viewLancar">
+      <div class="card">
+        <h2>Novo gasto</h2>
+        <div class="field">
+          <label for="fCartao">Cartão</label>
+          <select id="fCartao"></select>
+        </div>
+        <div class="field">
+          <label for="fTipo">Tipo</label>
+          <select id="fTipo"></select>
+        </div>
+        <div class="field">
+          <label for="fDesc">Descrição</label>
+          <input type="text" id="fDesc" autocomplete="off" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="fValor">Valor (R$)</label>
+          <input type="text" id="fValor" inputmode="numeric" autocomplete="off" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label for="fObs">OBS.</label>
+          <input type="text" id="fObs" autocomplete="off" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="fData">Data</label>
+          <input type="date" id="fData">
+        </div>
+        <button class="btn block" id="btnSalvar">Salvar gasto</button>
+      </div>
+
+      <div class="card">
+        <h2>Últimos lançamentos</h2>
+        <div id="recentes"><div class="empty">Carregando...</div></div>
+        <div class="empty" style="padding-top:2px">Toque em um lançamento para editar ou excluir.</div>
+      </div>
+
+      <div class="foot">
+        <button class="link" id="btnBio" hidden></button>
+      </div>
+    </section>
+
+    <!-- Tela de relatório -->
+    <section id="viewRel" hidden>
+      <div class="monthnav">
+        <button id="mPrev" aria-label="Mês anterior">&#8249;</button>
+        <div class="m-label" id="mLabel"></div>
+        <button id="mNext" aria-label="Próximo mês">&#8250;</button>
+      </div>
+      <div id="relatorio"></div>
+    </section>
+  </main>
 </div>
 
-<dialog id="dialog"></dialog>
-<div id="toast" hidden></div>
-<div id="print-area"></div>
+<!-- Modal de edição -->
+<div id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h2 id="mTitle">Editar gasto</h2>
+    <div class="field">
+      <label for="eCartao">Cartão</label>
+      <select id="eCartao"></select>
+    </div>
+    <div class="field">
+      <label for="eTipo">Tipo</label>
+      <select id="eTipo"></select>
+    </div>
+    <div class="field">
+      <label for="eDesc">Descrição</label>
+      <input type="text" id="eDesc" autocomplete="off" maxlength="120">
+    </div>
+    <div class="field">
+      <label for="eValor">Valor (R$)</label>
+      <input type="text" id="eValor" inputmode="numeric" autocomplete="off" placeholder="0,00">
+    </div>
+    <div class="field">
+      <label for="eObs">OBS.</label>
+      <input type="text" id="eObs" autocomplete="off" maxlength="200">
+    </div>
+    <div class="field">
+      <label for="eData">Data</label>
+      <input type="date" id="eData">
+    </div>
+    <div class="actions">
+      <button class="btn full" id="eSalvar">Salvar alterações</button>
+      <button class="btn danger" id="eExcluir">Excluir</button>
+      <button class="btn sec" id="eCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
 
-<script>
-/* =========================================================
-   FIREBASE
-========================================================= */
-firebase.initializeApp({
-  apiKey: "AIzaSyBQ8wnANHOVRE_HIgSWKunpv751BoPr9sc",
-  authDomain: "harmoniafuncional-fa6d8.firebaseapp.com",
-  databaseURL: "https://harmoniafuncional-fa6d8-default-rtdb.firebaseio.com",
-  projectId: "harmoniafuncional-fa6d8",
-  storageBucket: "harmoniafuncional-fa6d8.firebasestorage.app",
-  messagingSenderId: "454696393035",
-  appId: "1:454696393035:web:4cec553f592da2804cb0ce"
-});
+<div id="toast"></div>
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-/* Trabalho offline (falha silenciosa se não suportado ou se outra aba já ativou) */
-db.enablePersistence({synchronizeTabs:true}).catch(err=>{
-  console.warn("Persistência offline indisponível:",err.code);
-});
+/* ===================== Configuração ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBiikcagIm1p7wJG6DsHijkvdy1fpDBn8Y",
+  authDomain: "bd-teste-c931c.firebaseapp.com",
+  databaseURL: "https://bd-teste-c931c-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bd-teste-c931c",
+  storageBucket: "bd-teste-c931c.firebasestorage.app",
+  messagingSenderId: "270308100761",
+  appId: "1:270308100761:web:ae34fde6d5ae86b67b0608"
+};
+const NODE = "gastos_cartao";
+const PIN = "1346";
+const CARTOES = ["Nubank", "C6", "Diversos"];
+const TIPOS = ["Crédito", "Débito"];
+const LS_BIO = "gc_bio_id";
+const LS_BIO_NO = "gc_bio_recusou";
 
-const LOGIN_EMAIL = "admin@harmoniafuncional.local";
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dbRef = ref(db, NODE);
 
-/* =========================================================
-   UTILITÁRIOS
-========================================================= */
-const $ = (s,r=document) => r.querySelector(s);
-const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+/* ===================== Utilidades ===================== */
+const $ = id => document.getElementById(id);
 
-const esc = value =>
-  String(value ?? "").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-
-const today = () =>
-  new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-
-const dateBR = value => value ? value.split("-").reverse().join("/") : "-";
-
-const money = c =>
-  (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-
-/* Aceita "1.500", "1.500,00", "1500,5", "1500.50" */
-const cents = value => {
-  let v = String(value ?? "").trim();
-  if(!v) return 0;
-
-  if(v.includes(",")){
-    v = v.replace(/\./g,"").replace(",",".");
-  }else if(/^\d{1,3}(\.\d{3})+$/.test(v)){
-    v = v.replace(/\./g,""); // ponto como separador de milhar
-  }
-  return Math.round(parseFloat(v)*100) || 0;
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
 
-const moneyInput = value => (Number(value||0)/100).toFixed(2).replace(".",",");
-
-/* =========================================================
-   MÁSCARAS, MAIÚSCULAS E VALIDAÇÕES
-========================================================= */
-const digits = v => String(v ?? "").replace(/\D/g,"");
-
-function maskPhone(v){
-  const d = digits(v).slice(0,11);
-  if(!d) return "";
-  if(d.length<=2) return "("+d;
-  if(d.length<=6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-  if(d.length<=10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
-  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function pad2(n){ return String(n).padStart(2,"0"); }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+}
+function fmtDate(s){
+  if(!s || s.length < 10) return "";
+  const p = s.split("-");
+  return p[2] + "/" + p[1] + "/" + p[0];
+}
+function brl(c){
+  return (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+function digitsToCents(str){
+  const d = String(str).replace(/\D/g,"").slice(0,11);
+  return d ? parseInt(d,10) : 0;
+}
+function maskCents(c){
+  return c ? (c/100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
+}
+function attachMask(el){
+  el.addEventListener("input", () => { el.value = maskCents(digitsToCents(el.value)); });
+}
+let toastTimer = null;
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function onErr(err){
+  console.error(err);
+  toast("Erro ao gravar no Firebase. Verifique as regras do banco.");
 }
 
-function maskCPF(v){
-  const d = digits(v).slice(0,11);
-  let out = d.slice(0,3);
-  if(d.length>3) out += "."+d.slice(3,6);
-  if(d.length>6) out += "."+d.slice(6,9);
-  if(d.length>9) out += "-"+d.slice(9,11);
+/* ===================== Biometria (WebAuthn) ===================== */
+function b64(buf){
+  let s = "";
+  new Uint8Array(buf).forEach(b => s += String.fromCharCode(b));
+  return btoa(s);
+}
+function unb64(str){
+  const bin = atob(str);
+  const out = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
   return out;
 }
+function rand(n){ return crypto.getRandomValues(new Uint8Array(n)); }
 
-function validCPF(v){
-  const d = digits(v);
-  if(d.length!==11 || /^(\d)\1{10}$/.test(d)) return false;
-  for(let t=9;t<11;t++){
-    let s = 0;
-    for(let i=0;i<t;i++) s += Number(d[i])*(t+1-i);
-    if((s*10)%11%10 !== Number(d[t])) return false;
-  }
-  return true;
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-const MASK_RULES = {
-  email:{test:v=>EMAIL_RE.test(v), msg:"E-MAIL INVÁLIDO. USE O FORMATO NOME@DOMINIO.COM."},
-  cpf:{test:validCPF, msg:"CPF INVÁLIDO."},
-  phone:{test:v=>[10,11].includes(digits(v).length), msg:"TELEFONE INVÁLIDO. INFORME DDD + NÚMERO."}
-};
-
-const MASK_ATTRS = {
-  phone:'data-mask="phone" inputmode="tel" maxlength="15" placeholder="(00) 00000-0000"',
-  cpf:'data-mask="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"',
-  email:'data-mask="email" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="nome@dominio.com"'
-};
-
-const MASK_FNS = {phone:maskPhone, cpf:maskCPF};
-
-/* Aplica a máscara mantendo o cursor na mesma posição (contada em dígitos) */
-function setMasked(el,fn){
-  const pos = el.selectionStart ?? el.value.length;
-  const before = digits(el.value.slice(0,pos)).length;
-  el.value = fn(el.value);
-  let p = 0;
-  if(before>0){
-    let c = 0;
-    for(p=0;p<el.value.length;p++){
-      if(/\d/.test(el.value[p])) c++;
-      if(c===before){ p++; break; }
-    }
-  }
-  try{ el.setSelectionRange(p,p); }catch{}
-}
-
-/* Tudo que o usuário digita vira MAIÚSCULA (exceto senha, datas, números e e-mail) */
-function normalizeInput(el){
-
-  if(!el.matches?.("input,textarea") || el.readOnly) return;
-  if(["password","date","number","checkbox","radio","button"].includes(el.type)) return;
-
-  el.classList.remove("invalid");
-
-  const mask = el.dataset.mask;
-
-  if(MASK_FNS[mask]) return setMasked(el,MASK_FNS[mask]);
-
-  if(mask==="email"){
-    const pos = el.selectionStart ?? el.value.length;
-    const clean = el.value.replace(/\s/g,"").toLowerCase();
-    if(clean!==el.value){
-      const keep = el.value.slice(0,pos).replace(/\s/g,"").length;
-      el.value = clean;
-      try{ el.setSelectionRange(keep,keep); }catch{}
-    }
-    return;
-  }
-
-  const start = el.selectionStart, end = el.selectionEnd;
-  const upper = el.value.toUpperCase();
-  if(upper!==el.value){
-    el.value = upper;
-    try{ el.setSelectionRange(start,end); }catch{}
-  }
-}
-
-function validateField(el){
-  const rule = MASK_RULES[el.dataset.mask];
-  const v = el.value.trim();
-  const ok = !rule || !v || rule.test(v);
-  el.classList.toggle("invalid",!ok);
-  return ok;
-}
-
-function validateDialogMasks(){
-  for(const el of $$("[data-mask]",dialog)){
-    if(!validateField(el)){
-      toast(MASK_RULES[el.dataset.mask].msg);
-      el.focus();
-      return false;
-    }
-  }
-  return true;
-}
-
-function addDays(iso,n){
-  if(!iso) return "";
-  const [y,m,d] = iso.split("-").map(Number);
-  const dt = new Date(y,m-1,d+n);
-  return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
-}
-
-const timestamp = () => firebase.firestore.FieldValue.serverTimestamp();
-
-function toast(message){
-  const el = $("#toast");
-  el.textContent = message;
-  el.hidden = false;
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(()=>{ el.hidden = true; },3500);
-}
-
-function status(text,type){
-  return `<span class="status ${type}">${esc(text)}</span>`;
-}
-
-const STATUS_OS = ["RECEBIDO","EM PROVA","EM ACABAMENTO","CONCLUÍDO","ENTREGUE"];
-const STATUS_ORC = ["ABERTO","APROVADO","RECUSADO"];
-const PAYMENT_TYPES = ["PIX","DINHEIRO","CARTÃO","TRANSFERÊNCIA","BOLETO"];
-
-function osStatus(value){
-  const map = {
-    "RECEBIDO":"gray","EM PROVA":"orange","EM ACABAMENTO":"blue",
-    "CONCLUÍDO":"green","ENTREGUE":"green"
-  };
-  return status(value,map[value]||"gray");
-}
-
-/* Usa o mesmo cálculo de normalizeOrder e mostra o atraso mesmo em pagamento parcial */
-function paymentStatus(o){
-  if(o.statusPagamento==="PAGO") return status("PAGO","green");
-  let html = o.statusPagamento==="PARCIAL"
-    ? status("PARCIAL","orange")
-    : status("PENDENTE","gray");
-  if(o.atrasado) html += status("VENCIDO","red");
-  return html;
-}
-
-/* =========================================================
-   ESTADO
-========================================================= */
-const initialState = () => ({
-  tab:"dashboard",
-  dentists:[],
-  orders:[],
-  quotes:[],
-  lab:{},
-  search:"",
-  filter:""
-});
-
-const state = initialState();
-
-let unsubscribers = [];
-const dialog = $("#dialog");
-
-/* =========================================================
-   NORMALIZAÇÃO
-========================================================= */
-function normalizeOrder(o){
-
-  if(!Array.isArray(o.itens)){
-    const value = Math.round(Number(o.valor||0)*100);
-    o.itens = [{descricao:o.tipo||"",cor:o.cor||"",quantidade:1,valor:value}];
-    o.pagamentos = o.pagamento==="PAGO"
-      ? [{data:o.previsao||today(),valor:value,forma:"PIX"}]
-      : [];
-  }
-
-  o.pagamentos = Array.isArray(o.pagamentos)
-    ? o.pagamentos
-    : Array.isArray(o.pags) ? o.pags : [];
-
-  o.total = o.itens.reduce(
-    (sum,i)=>sum+(Number(i.quantidade||i.q||1)*Number(i.valor??i.v??0)),0
-  );
-
-  o.pago = o.pagamentos.reduce((sum,p)=>sum+Number(p.valor??p.v??0),0);
-  o.saldo = Math.max(o.total-o.pago,0);
-
-  o.statusPagamento =
-    o.total>0 && o.saldo===0 ? "PAGO"
-    : o.pago>0 ? "PARCIAL"
-    : "PENDENTE";
-
-  o.atrasado = o.saldo>0 && !!o.vencimento && o.vencimento<today();
-
-  return o;
-}
-
-function dentistName(o){
-  const d = state.dentists.find(x=>x.id===o.dentistaId);
-  return d?.nome || o.dentistaNome || "-";
-}
-
-const createdTime = o => o.criadoEm?.toMillis?.() || 0;
-
-/* =========================================================
-   RENDER AGRUPADO (evita re-render em cascata)
-========================================================= */
-let renderQueued = false;
-
-function scheduleRender(){
-  if(renderQueued) return;
-  renderQueued = true;
-  requestAnimationFrame(()=>{
-    renderQueued = false;
-    render();
-  });
-}
-
-/* =========================================================
-   LOGIN
-========================================================= */
-let authReady = false;
-
-function applyAuth(user){
-
-  $("#login").hidden = !!user;
-  $("#app").hidden = !user;
-
-  if(user){
-    startData();
-  }else{
-    stopData();
-    $("#password").value = "";
-    setTimeout(()=>{
-      const pw = $("#password");
-      if(pw){ pw.focus(); pw.select(); }
-    },50);
-  }
-}
-
-auth.onAuthStateChanged(user=>{
-  if(authReady) applyAuth(user);
-});
-
-/* Sessão NÃO é guardada: ao abrir ou recarregar a página, a senha é sempre pedida.
-   O signOut inicial também descarta sessões antigas salvas antes desta alteração. */
-(async()=>{
-  try{ await auth.setPersistence(firebase.auth.Auth.Persistence.NONE); }
-  catch(err){ console.warn("setPersistence:",err); }
-
-  try{ await auth.signOut(); }
-  catch(err){ console.warn("signOut inicial:",err); }
-
-  authReady = true;
-  applyAuth(auth.currentUser);
-})();
-
-async function doLogin(){
-
-  if(!authReady){ toast("AGUARDE UM INSTANTE..."); return; }
-
-  const button = $("#login-button");
-  const error = $("#login-error");
-  const password = $("#password").value;
-
-  error.hidden = true;
-  button.disabled = true;
-
+let bioOk = false;
+async function checkBioSupport(){
   try{
-    await auth.signInWithEmailAndPassword(LOGIN_EMAIL,password);
-  }catch(err){
-
-    console.error("ERRO DE LOGIN FIREBASE:",err);
-
-    const messages = {
-      "auth/invalid-api-key":"A CHAVE DA API DO FIREBASE ESTÁ INVÁLIDA.",
-      "auth/api-key-not-valid":"A CHAVE DA API DO FIREBASE ESTÁ INVÁLIDA.",
-      "auth/wrong-password":"SENHA INCORRETA.",
-      "auth/invalid-credential":"SENHA INCORRETA.",
-      "auth/user-not-found":"USUÁRIO NÃO ENCONTRADO NO FIREBASE AUTHENTICATION.",
-      "auth/unauthorized-domain":"DOMÍNIO NÃO AUTORIZADO NO FIREBASE (AUTHENTICATION > SETTINGS).",
-      "auth/too-many-requests":"MUITAS TENTATIVAS. AGUARDE UM POUCO.",
-      "auth/operation-not-allowed":"LOGIN POR E-MAIL/SENHA NÃO ESTÁ ATIVADO NO FIREBASE.",
-      "auth/network-request-failed":"SEM CONEXÃO COM A INTERNET."
-    };
-
-    error.textContent = messages[err.code] || ("ERRO DE LOGIN: "+(err.code||err.message));
-    error.hidden = false;
-
-  }finally{
-    button.disabled = false;
-  }
+    bioOk = !!(window.isSecureContext && window.PublicKeyCredential &&
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  }catch(e){ bioOk = false; }
+  return bioOk;
 }
-
-$("#login-button").addEventListener("click",doLogin);
-
-$("#password").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){ e.preventDefault(); doLogin(); }
-});
-
-/* =========================================================
-   DADOS
-========================================================= */
-function stopData(){
-  unsubscribers.forEach(fn=>fn());
-  unsubscribers = [];
-  Object.assign(state,initialState()); // limpa dados em memória ao sair
-  $("#content").innerHTML = "";
-}
-
-/* "estimate" evita criadoEm = null enquanto o servidor não confirma */
-const docData = d => ({id:d.id,...d.data({serverTimestamps:"estimate"})});
-
-function startData(){
-
-  stopData();
-
-  unsubscribers.push(
-    db.collection("dentistas").onSnapshot(snapshot=>{
-      state.dentists = snapshot.docs.map(docData);
-      state.dentists.sort((a,b)=>(a.nome||"").localeCompare(b.nome||"","pt-BR"));
-      scheduleRender();
-    },handleFirebaseError)
-  );
-
-  unsubscribers.push(
-    db.collection("ordens_servico").onSnapshot(snapshot=>{
-      state.orders = snapshot.docs.map(docData);
-      state.orders.forEach(normalizeOrder);
-      state.orders.sort((a,b)=>createdTime(b)-createdTime(a));
-      scheduleRender();
-    },handleFirebaseError)
-  );
-
-  unsubscribers.push(
-    db.collection("orcamentos").onSnapshot(snapshot=>{
-      state.quotes = snapshot.docs.map(docData);
-      state.quotes.forEach(normalizeOrder);
-      state.quotes.sort((a,b)=>createdTime(b)-createdTime(a));
-      scheduleRender();
-    },handleFirebaseError)
-  );
-
-  unsubscribers.push(
-    db.doc("config/lab").onSnapshot(snapshot=>{
-      state.lab = snapshot.data()||{};
-    },handleFirebaseError)
-  );
-}
-
-function handleFirebaseError(err){
-  console.error(err);
-  toast("ERRO FIREBASE: "+err.message);
-}
-
-/* =========================================================
-   NUMERAÇÃO
-========================================================= */
-async function nextNumber(type){
-
-  const year = new Date().getFullYear();
-  const ref = db.doc("contadores/"+type+year);
-
-  const n = await db.runTransaction(async transaction=>{
-    const snapshot = await transaction.get(ref);
-    const current = snapshot.exists ? Number(snapshot.data().n||0) : 0;
-    const next = current+1;
-    transaction.set(ref,{n:next});
-    return next;
-  });
-
-  return String(n).padStart(3,"0")+"/"+year;
-}
-
-/* =========================================================
-   TABS
-========================================================= */
-const TABS = [
-  ["dashboard","PAINEL"],
-  ["orders","ORDENS DE SERVIÇO"],
-  ["quotes","ORÇAMENTOS"],
-  ["dentists","DENTISTAS"],
-  ["finance","FINANCEIRO"]
-];
-
-function renderTabs(){
-  $("#tabs").innerHTML = TABS.map(([id,label])=>
-    `<button class="${state.tab===id?"active":""}" data-action="tab" data-tab="${id}">${label}</button>`
-  ).join("");
-}
-
-/* =========================================================
-   RENDER
-========================================================= */
-function render(){
-
-  if(!auth.currentUser) return;
-
-  renderTabs();
-
-  const views = {
-    dashboard:renderDashboard,
-    orders:renderOrders,
-    quotes:renderQuotes,
-    dentists:renderDentists,
-    finance:renderFinance
-  };
-
-  $("#content").innerHTML = views[state.tab]();
-}
-
-/* Re-renderiza e mantém foco e cursor do campo de busca */
-function renderKeepingSearch(){
-
-  const scroll = window.scrollY;
-  const input = $("#search");
-  const pos = input ? input.selectionStart : null;
-
-  render();
-
-  const fresh = $("#search");
-  if(fresh && pos!==null){
-    fresh.focus();
-    fresh.setSelectionRange(pos,pos);
-  }
-  window.scrollTo(0,scroll);
-}
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
-function tile(label,value){
-  return `
-    <div class="card tile">
-      <small>${label}</small>
-      <strong>${value}</strong>
-    </div>`;
-}
-
-function sumOrders(fn){
-  return state.orders.reduce((s,o)=>s+fn(o),0);
-}
-
-function renderDashboard(){
-
-  const active = state.orders.filter(o=>o.status!=="ENTREGUE");
-  const late = active.filter(o=>o.previsao && o.previsao<today());
-
-  const next = active.slice()
-    .sort((a,b)=>(a.previsao||"9999")>(b.previsao||"9999")?1:-1)
-    .slice(0,8);
-
-  const billed = sumOrders(o=>o.total);
-  const received = sumOrders(o=>o.pago);
-  const receivable = sumOrders(o=>o.saldo);
-  const overdue = state.orders.filter(o=>o.atrasado).reduce((s,o)=>s+o.saldo,0);
-
-  return `
-    <h2>PAINEL GERAL</h2>
-
-    <div class="tiles">
-      ${tile("OS EM ANDAMENTO",active.length)}
-      ${tile("ENTREGAS ATRASADAS",late.length)}
-      ${tile("FATURADO",money(billed))}
-      ${tile("RECEBIDO",money(received))}
-      ${tile("A RECEBER",money(receivable))}
-      ${tile("VENCIDO",money(overdue))}
-      ${tile("DENTISTAS",state.dentists.length)}
-    </div>
-
-    <h2>PRÓXIMAS ENTREGAS</h2>
-    ${orderTable(next)}
-  `;
-}
-
-/* =========================================================
-   TABELAS
-========================================================= */
-function orderTable(list){
-
-  if(!list.length)
-    return `<div class="card empty">NENHUM REGISTRO ENCONTRADO.</div>`;
-
-  return `
-  <div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th>OS</th><th>PACIENTE</th><th>DENTISTA</th><th>ENTREGA</th>
-        <th>ETAPA</th><th>TOTAL</th><th>PAGAMENTO</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${list.map(o=>`
-        <tr tabindex="0" data-action="edit" data-type="order" data-id="${o.id}">
-          <td data-label="OS"><b>${esc(o.numero)}</b></td>
-          <td data-label="PACIENTE">${esc(o.paciente)}</td>
-          <td data-label="DENTISTA">${esc(dentistName(o))}</td>
-          <td data-label="ENTREGA">
-            ${dateBR(o.previsao)}
-            ${o.previsao && o.previsao<today() && o.status!=="ENTREGUE" ? status("ATRASADA","red") : ""}
-          </td>
-          <td data-label="ETAPA">${osStatus(o.status)}</td>
-          <td data-label="TOTAL">${money(o.total)}</td>
-          <td data-label="PAGAMENTO">${paymentStatus(o)}</td>
-        </tr>
-      `).join("")}
-    </tbody>
-  </table>
-  </div>`;
-}
-
-/* =========================================================
-   ORDENS
-========================================================= */
-function matchesSearch(o){
-  const text = (o.numero+" "+o.paciente+" "+dentistName(o)).toLowerCase();
-  return text.includes(state.search.toLowerCase());
-}
-
-function renderOrders(){
-
-  const filtered = state.orders.filter(o=>
-    matchesSearch(o) && (!state.filter || o.status===state.filter)
-  );
-
-  return `
-    <h2>ORDENS DE SERVIÇO</h2>
-
-    <div class="toolbar">
-      <input id="search" placeholder="BUSCAR..." value="${esc(state.search)}">
-
-      <select id="filter">
-        <option value="">TODAS AS ETAPAS</option>
-        ${STATUS_OS.map(s=>`<option ${state.filter===s?"selected":""}>${s}</option>`).join("")}
-      </select>
-
-      <button class="primary" data-action="new-order">+ NOVA OS</button>
-    </div>
-
-    ${orderTable(filtered)}
-  `;
-}
-
-/* =========================================================
-   ORÇAMENTOS
-========================================================= */
-function renderQuotes(){
-
-  const filtered = state.quotes.filter(o=>
-    matchesSearch(o) && (!state.filter || o.status===state.filter)
-  );
-
-  const toolbar = `
-    <h2>ORÇAMENTOS</h2>
-
-    <div class="toolbar">
-      <input id="search" placeholder="BUSCAR..." value="${esc(state.search)}">
-
-      <select id="filter">
-        <option value="">TODOS</option>
-        ${STATUS_ORC.map(s=>`<option ${state.filter===s?"selected":""}>${s}</option>`).join("")}
-      </select>
-
-      <button class="primary" data-action="new-quote">+ NOVO ORÇAMENTO</button>
-    </div>`;
-
-  if(!filtered.length)
-    return toolbar+`<div class="card empty">NENHUM REGISTRO ENCONTRADO.</div>`;
-
-  return toolbar+`
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Nº</th><th>PACIENTE</th><th>DENTISTA</th><th>DATA</th>
-            <th>VALIDADE</th><th>TOTAL</th><th>SITUAÇÃO</th>
-          </tr>
-        </thead>
-        <tbody>
-        ${filtered.map(o=>`
-          <tr tabindex="0" data-action="edit" data-type="quote" data-id="${o.id}">
-            <td data-label="Nº"><b>${esc(o.numero)}</b></td>
-            <td data-label="PACIENTE">${esc(o.paciente)}</td>
-            <td data-label="DENTISTA">${esc(dentistName(o))}</td>
-            <td data-label="DATA">${dateBR(o.data)}</td>
-            <td data-label="VALIDADE">${o.validade||30} DIAS CORRIDOS</td>
-            <td data-label="TOTAL">${money(o.total)}</td>
-            <td data-label="SITUAÇÃO">
-              ${status(o.status,
-                o.status==="APROVADO"?"green":o.status==="RECUSADO"?"red":"blue")}
-            </td>
-          </tr>
-        `).join("")}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-/* =========================================================
-   DENTISTAS
-========================================================= */
-function renderDentists(){
-
-  const list = state.dentists.filter(d=>
-    ((d.nome||"")+" "+(d.cro||"")+" "+(d.cpf||"")+" "+(d.telefone||""))
-      .toLowerCase().includes(state.search.toLowerCase())
-  );
-
-  return `
-    <h2>DENTISTAS E CLIENTES</h2>
-
-    <div class="toolbar">
-      <input id="search" placeholder="BUSCAR DENTISTA..." value="${esc(state.search)}">
-      <button class="primary" data-action="new-dentist">+ NOVO DENTISTA</button>
-    </div>
-
-    ${list.length ? `
-      <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>NOME</th><th>CRO</th><th>CPF</th><th>TELEFONE</th><th>E-MAIL</th><th>OS</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-        ${list.map(d=>`
-          <tr tabindex="0" data-action="edit-dentist" data-id="${d.id}">
-            <td data-label="NOME"><b>${esc(d.nome)}</b></td>
-            <td data-label="CRO">${esc(d.cro)}</td>
-            <td data-label="CPF">${esc(maskCPF(d.cpf))}</td>
-            <td data-label="TELEFONE">${esc(maskPhone(d.telefone))}</td>
-            <td data-label="E-MAIL">${esc(d.email)}</td>
-            <td data-label="OS">${state.orders.filter(o=>o.dentistaId===d.id).length}</td>
-            <td data-label="">
-              <div class="actions">
-                <button class="danger" data-action="delete-dentist" data-id="${d.id}">EXCLUIR</button>
-              </div>
-            </td>
-          </tr>
-        `).join("")}
-        </tbody>
-      </table>
-      </div>
-    ` : `<div class="card empty">NENHUM DENTISTA ENCONTRADO.</div>`}
-  `;
-}
-
-/* =========================================================
-   FINANCEIRO
-========================================================= */
-function renderFinance(){
-
-  const billed = sumOrders(o=>o.total);
-  const received = sumOrders(o=>o.pago);
-  const receivable = sumOrders(o=>o.saldo);
-  const overdue = state.orders.filter(o=>o.atrasado).reduce((s,o)=>s+o.saldo,0);
-
-  const list = state.orders.filter(o=>{
-    let filter = true;
-    if(state.filter==="VENCIDO") filter = o.atrasado;
-    else if(state.filter) filter = o.statusPagamento===state.filter;
-    return matchesSearch(o) && filter;
-  });
-
-  return `
-    <h2>FINANCEIRO</h2>
-
-    <div class="tiles">
-      ${tile("FATURADO",money(billed))}
-      ${tile("RECEBIDO",money(received))}
-      ${tile("A RECEBER",money(receivable))}
-      ${tile("VENCIDO",money(overdue))}
-    </div>
-
-    <div class="toolbar">
-      <input id="search" placeholder="BUSCAR OS OU PACIENTE..." value="${esc(state.search)}">
-
-      <select id="filter">
-        <option value="">TODOS</option>
-        ${["PENDENTE","PARCIAL","PAGO","VENCIDO"].map(s=>
-          `<option ${state.filter===s?"selected":""}>${s}</option>`
-        ).join("")}
-      </select>
-
-      <button class="primary" data-action="report">📊 RELATÓRIO</button>
-    </div>
-
-    ${list.length ? `
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>OS / PACIENTE</th><th>DENTISTA</th><th>VENCIMENTO</th>
-            <th>TOTAL</th><th>PAGO</th><th>SALDO</th><th>STATUS</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-        ${list.map(o=>`
-          <tr tabindex="0" data-action="edit" data-type="order" data-id="${o.id}">
-            <td data-label="OS / PACIENTE"><b>${esc(o.numero)}</b> ${esc(o.paciente)}</td>
-            <td data-label="DENTISTA">${esc(dentistName(o))}</td>
-            <td data-label="VENCIMENTO">${dateBR(o.vencimento)}</td>
-            <td data-label="TOTAL">${money(o.total)}</td>
-            <td data-label="PAGO">${money(o.pago)}</td>
-            <td data-label="SALDO">${money(o.saldo)}</td>
-            <td data-label="STATUS">${paymentStatus(o)}</td>
-            <td data-label="">
-              ${o.saldo>0 ? `
-                <div class="actions">
-                  <button class="primary" data-action="receive" data-id="${o.id}">RECEBER</button>
-                </div>` : ""}
-            </td>
-          </tr>
-        `).join("")}
-        </tbody>
-      </table>
-    </div>
-    ` : `<div class="card empty">NENHUM REGISTRO ENCONTRADO.</div>`}
-  `;
-}
-
-/* =========================================================
-   FORM HELPERS
-========================================================= */
-function field(name,label,value="",type="text",extra=""){
-  return `
-    <label class="field">
-      <span>${label}</span>
-      <input data-field="${name}" type="${type}" value="${esc(value)}" ${extra}>
-    </label>`;
-}
-
-function selectField(name,label,options,value){
-  return `
-    <label class="field">
-      <span>${label}</span>
-      <select data-field="${name}">
-        ${options.map(o=>{
-          const val = typeof o==="string" ? o : o.value;
-          const text = typeof o==="string" ? o : o.text;
-          return `<option value="${esc(val)}" ${String(val)===String(value)?"selected":""}>${esc(text)}</option>`;
-        }).join("")}
-      </select>
-    </label>`;
-}
-
-function getField(name){
-  const el = $(`[data-field="${name}"]`,dialog);
-  if(!el) return "";
-  const v = el.value.trim();
-  if(el.dataset.mask==="email") return v.toLowerCase();
-  if(el.tagName==="SELECT" || ["date","number","password"].includes(el.type)) return v;
-  return v.toUpperCase();
-}
-
-function dentistOptions(){
-  return [
-    {value:"",text:"SELECIONE..."},
-    ...state.dentists.map(d=>({
-      value:d.id,
-      text:d.nome+(d.cro?" ("+d.cro+")":"")
-    }))
-  ];
-}
-
-/* =========================================================
-   ITENS E PAGAMENTOS
-========================================================= */
-function itemRow(item={}){
-  const unit = item.valor ?? item.v;
-  return `
-    <div class="item-row">
-      <input data-item="descricao" placeholder="DESCRIÇÃO" value="${esc(item.descricao||item.d||"")}">
-      <input data-item="cor" placeholder="COR / DENTES" value="${esc(item.cor||"")}">
-      <input data-item="quantidade" inputmode="numeric" value="${item.quantidade||item.q||1}">
-      <input data-item="valor" inputmode="decimal" placeholder="VALOR" value="${unit ? moneyInput(unit) : ""}">
-      <button class="icon" data-action="remove-row" type="button">✕</button>
-    </div>`;
-}
-
-function paymentRow(payment={}){
-  const value = payment.valor ?? payment.v;
-  return `
-    <div class="payment-row">
-      <input type="date" data-payment="data" value="${esc(payment.data||payment.dt||today())}">
-      <input data-payment="valor" inputmode="decimal" placeholder="VALOR" value="${value ? moneyInput(value) : ""}">
-      <select data-payment="forma">
-        ${PAYMENT_TYPES.map(f=>
-          `<option ${f===(payment.forma||payment.f)?"selected":""}>${f}</option>`
-        ).join("")}
-      </select>
-      <button class="icon" data-action="remove-row" type="button">✕</button>
-    </div>`;
-}
-
-function readItems(){
-  return $$(".item-row",dialog).map(row=>({
-    descricao:$('[data-item="descricao"]',row).value.trim().toUpperCase(),
-    cor:$('[data-item="cor"]',row).value.trim().toUpperCase(),
-    quantidade:parseInt($('[data-item="quantidade"]',row).value)||1,
-    valor:cents($('[data-item="valor"]',row).value)
-  })).filter(i=>i.descricao||i.valor);
-}
-
-function readPayments(){
-  return $$(".payment-row",dialog).map(row=>({
-    data:$('[data-payment="data"]',row).value||today(),
-    valor:cents($('[data-payment="valor"]',row).value),
-    forma:$('[data-payment="forma"]',row).value
-  })).filter(p=>p.valor);
-}
-
-function calculateDialog(){
-
-  const total = readItems().reduce((s,i)=>s+i.quantidade*i.valor,0);
-  const paid = readPayments().reduce((s,p)=>s+p.valor,0);
-  const balance = Math.max(total-paid,0);
-
-  const box = $("#dialog-total");
-
-  if(box){
-    box.innerHTML = `
-      TOTAL: <b>${money(total)}</b>
-      &nbsp;&nbsp;
-      PAGO: <b>${money(paid)}</b>
-      &nbsp;&nbsp;
-      SALDO: <b>${money(balance)}</b>`;
-  }
-}
-
-/* =========================================================
-   MODAL
-========================================================= */
-function openDialog(title,body,footer){
-
-  dialog.innerHTML = `
-    <div class="dialog-head">
-      <h3>${esc(title)}</h3>
-      <button class="icon" data-action="close-dialog" type="button">✕</button>
-    </div>
-    <div class="dialog-body">${body}</div>
-    <div class="dialog-foot">${footer}</div>`;
-
-  dialog.showModal();
-  calculateDialog();
-
-  const focus = $("input:not([readonly]),select,textarea",dialog);
-  if(focus) setTimeout(()=>focus.focus(),50);
-}
-
-/* =========================================================
-   FORM OS / ORÇAMENTO
-========================================================= */
-function openDocument(type,id=""){
-
-  const isOrder = type==="order";
-  const source = isOrder ? state.orders : state.quotes;
-  const old = id ? source.find(o=>o.id===id) : null;
-
-  const o = old || {
-    itens:[{quantidade:1}],
-    pagamentos:[],
-    status:isOrder ? "RECEBIDO" : "ABERTO",
-    validade:30
-  };
-
-  dialog.dataset.type = type;
-  dialog.dataset.id = id;
-
-  const top = isOrder
-    ? `
-      ${selectField("status","ETAPA",STATUS_OS,o.status)}
-      ${field("previsao","PREVISÃO DE ENTREGA",o.previsao,"date")}
-      ${field("vencimento","VENCIMENTO DO PAGAMENTO",o.vencimento,"date")}
-    `
-    : `
-      ${field("validade","VALIDADE (DIAS CORRIDOS)",o.validade||30,"number",'min="1"')}
-      ${selectField("status","SITUAÇÃO",STATUS_ORC,o.status)}
-    `;
-
-  const body = `
-    <div class="grid">
-      ${field("numero","NÚMERO",id?o.numero:"AUTOMÁTICO","text","readonly")}
-      ${selectField("dentistaId","DENTISTA",dentistOptions(),o.dentistaId)}
-      ${field("paciente","PACIENTE",o.paciente)}
-      ${field("cpfPaciente","CPF DO PACIENTE",maskCPF(o.cpfPaciente),"text",MASK_ATTRS.cpf)}
-      ${top}
-    </div>
-
-    <div class="section">
-      <span>ITENS DO TRABALHO</span>
-      <button class="icon" data-action="add-item" type="button">+ ITEM</button>
-    </div>
-
-    <div id="items">${o.itens.map(itemRow).join("")}</div>
-
-    ${isOrder ? `
-      <div class="section">
-        <span>PAGAMENTOS RECEBIDOS</span>
-        <button class="icon" data-action="add-payment" type="button">+ PAGAMENTO</button>
-      </div>
-      <div id="payments">${o.pagamentos.map(paymentRow).join("")}</div>
-    ` : ""}
-
-    <div id="dialog-total" class="total-box"></div>
-
-    <label class="field full">
-      <span>OBSERVAÇÕES</span>
-      <textarea data-field="observacoes" rows="3">${esc(o.observacoes||o.obs||"")}</textarea>
-    </label>`;
-
-  let footer = `
-    <button class="primary" data-action="save-document">SALVAR</button>
-    <button data-action="close-dialog">CANCELAR</button>`;
-
-  if(id){
-    footer += `
-      <button data-action="print" data-type="${type}" data-id="${id}">🖨 IMPRIMIR / PDF</button>`;
-
-    if(!isOrder && !o.osNum){
-      footer += `<button data-action="generate-order" data-id="${id}">GERAR OS</button>`;
-    }
-
-    footer += `
-      <button class="danger" data-action="delete" data-type="${type}" data-id="${id}">EXCLUIR</button>`;
-  }
-
-  openDialog((isOrder?"OS ":"ORÇAMENTO ")+(id?o.numero:"NOVO"),body,footer);
-}
-
-/* =========================================================
-   DENTISTA
-========================================================= */
-function openDentist(id=""){
-
-  const d = id ? state.dentists.find(x=>x.id===id) : {};
-
-  dialog.dataset.type = "dentist";
-  dialog.dataset.id = id;
-
-  const body = `
-    <div class="grid">
-      ${field("nome","NOME",d.nome)}
-      ${field("cro","CRO",d.cro)}
-      ${field("cpf","CPF DO DENTISTA",maskCPF(d.cpf),"text",MASK_ATTRS.cpf)}
-      ${field("telefone","TELEFONE / WHATSAPP",maskPhone(d.telefone),"text",MASK_ATTRS.phone)}
-      ${field("email","E-MAIL",d.email,"text",MASK_ATTRS.email)}
-
-      <label class="field full">
-        <span>ENDEREÇO DA CLÍNICA</span>
-        <textarea data-field="endereco" rows="3">${esc(d.endereco)}</textarea>
-      </label>
-    </div>`;
-
-  const footer = `
-    <button class="primary" data-action="save-dentist">SALVAR</button>
-    <button data-action="close-dialog">CANCELAR</button>
-    ${id ? `<button class="danger" data-action="delete-dentist" data-id="${id}">EXCLUIR</button>` : ""}`;
-
-  openDialog(id?"EDITAR DENTISTA":"NOVO DENTISTA",body,footer);
-}
-
-/* =========================================================
-   CONFIGURAÇÃO
-========================================================= */
-function openConfig(){
-
-  const l = state.lab||{};
-
-  dialog.dataset.type = "config";
-  dialog.dataset.id = "";
-
-  const body = `
-    <div class="grid">
-      ${field("nome","NOME DO LABORATÓRIO",l.nome)}
-      ${field("cnpj","CNPJ",l.cnpj)}
-      ${field("telefone","TELEFONE / WHATSAPP",maskPhone(l.tel),"text",MASK_ATTRS.phone)}
-      ${field("endereco","ENDEREÇO",l.end)}
-    </div>`;
-
-  openDialog("DADOS DO LABORATÓRIO",body,`
-    <button class="primary" data-action="save-config">SALVAR</button>
-    <button data-action="close-dialog">CANCELAR</button>`);
-}
-
-/* =========================================================
-   RECEBER
-========================================================= */
-function openReceive(id){
-
-  const o = state.orders.find(x=>x.id===id);
-  if(!o) return;
-
-  dialog.dataset.type = "receive";
-  dialog.dataset.id = id;
-
-  openDialog(
-    "RECEBER — OS "+o.numero,
-    `
-      <div class="grid">
-        ${field("data","DATA",today(),"date")}
-        ${field("valor","VALOR (R$)",moneyInput(o.saldo))}
-        ${selectField("forma","FORMA",PAYMENT_TYPES,"PIX")}
-      </div>
-
-      <p style="color:var(--muted)">
-        SALDO EM ABERTO: <b>${money(o.saldo)}</b>
-      </p>`,
-    `
-      <button class="primary" data-action="save-payment">RECEBER</button>
-      <button data-action="close-dialog">CANCELAR</button>`
-  );
-}
-
-/* =========================================================
-   SALVAMENTO
-========================================================= */
-async function saveDocument(){
-
-  const type = dialog.dataset.type;
-  const id = dialog.dataset.id;
-  const isOrder = type==="order";
-
-  const dentistId = getField("dentistaId");
-  const patient = getField("paciente");
-  const items = readItems();
-
-  if(!dentistId || !patient || !items.length){
-    toast("INFORME DENTISTA, PACIENTE E AO MENOS UM ITEM.");
-    return;
-  }
-
-  if(!validateDialogMasks()) return;
-
-  const dentist = state.dentists.find(d=>d.id===dentistId);
-
-  const data = {
-    dentistaId:dentistId,
-    dentistaNome:dentist?.nome||"",
-    paciente:patient,
-    cpfPaciente:getField("cpfPaciente"),
-    status:getField("status"),
-    itens:items,
-    observacoes:getField("observacoes")
-  };
-
-  if(isOrder){
-    data.previsao = getField("previsao");
-    data.vencimento = getField("vencimento");
-    data.pagamentos = readPayments();
-  }else{
-    data.validade = parseInt(getField("validade"))||30;
-  }
-
-  const ref = db.collection(isOrder ? "ordens_servico" : "orcamentos");
-
-  if(id){
-    await ref.doc(id).update(data);
-  }else{
-    data.numero = await nextNumber(isOrder ? "os" : "orc");
-    data.data = today();
-    data.criadoEm = timestamp();
-    await ref.add(data);
-  }
-
-  dialog.close();
-  toast("SALVO COM SUCESSO");
-}
-
-async function saveDentist(){
-
-  const name = getField("nome");
-
-  if(!name){
-    toast("INFORME O NOME DO DENTISTA.");
-    return;
-  }
-
-  if(!validateDialogMasks()) return;
-
-  const data = {
-    nome:name,
-    cro:getField("cro"),
-    cpf:getField("cpf"),
-    telefone:getField("telefone"),
-    email:getField("email"),
-    endereco:getField("endereco")
-  };
-
-  const id = dialog.dataset.id;
-
-  if(id){
-    await db.collection("dentistas").doc(id).update(data);
-  }else{
-    data.criadoEm = timestamp();
-    await db.collection("dentistas").add(data);
-  }
-
-  dialog.close();
-  toast("DENTISTA SALVO");
-}
-
-async function saveConfig(){
-
-  if(!validateDialogMasks()) return;
-
-  await db.doc("config/lab").set({
-    nome:getField("nome"),
-    cnpj:getField("cnpj"),
-    tel:getField("telefone"),
-    end:getField("endereco")
-  });
-
-  dialog.close();
-  toast("DADOS DO LABORATÓRIO SALVOS");
-}
-
-/* arrayUnion evita sobrescrever pagamentos feitos em outra aba/dispositivo */
-async function savePayment(){
-
-  const id = dialog.dataset.id;
-  const order = state.orders.find(o=>o.id===id);
-  if(!order) return;
-
-  const value = cents(getField("valor"));
-
-  if(!value){
-    toast("INFORME O VALOR.");
-    return;
-  }
-
-  if(value>order.saldo){
-    toast("O VALOR NÃO PODE SER MAIOR QUE O SALDO.");
-    return;
-  }
-
-  const payment = {
-    data:getField("data")||today(),
-    valor:value,
-    forma:getField("forma")
-  };
-
-  await db.collection("ordens_servico").doc(id).update({
-    pagamentos:firebase.firestore.FieldValue.arrayUnion(payment)
-  });
-
-  dialog.close();
-  toast("PAGAMENTO REGISTRADO");
-}
-
-/* =========================================================
-   EXCLUSÃO
-========================================================= */
-async function deleteRecord(type,id){
-
-  if(!id) return;
-
-  /* valida ANTES de pedir confirmação */
-  if(type==="dentist"){
-    const hasDocs =
-      state.orders.some(o=>o.dentistaId===id) ||
-      state.quotes.some(q=>q.dentistaId===id);
-
-    if(hasDocs){
-      toast("ESTE DENTISTA POSSUI OS OU ORÇAMENTOS. EXCLUA-OS ANTES.");
-      return;
-    }
-  }
-
-  if(!confirm("EXCLUIR ESTE REGISTRO?\n\nA ação não pode ser desfeita.")) return;
-
-  const collection = {
-    order:"ordens_servico",
-    quote:"orcamentos",
-    dentist:"dentistas"
-  }[type];
-
-  await db.collection(collection).doc(id).delete();
-
-  if(dialog.open) dialog.close();
-
-  toast("REGISTRO EXCLUÍDO");
-}
-
-/* =========================================================
-   GERAR OS A PARTIR DO ORÇAMENTO (atômico)
-========================================================= */
-async function generateOrder(id){
-
-  const quote = state.quotes.find(q=>q.id===id);
-  if(!quote) return;
-
-  if(quote.osNum){
-    toast("ESTE ORÇAMENTO JÁ GEROU A OS "+quote.osNum+".");
-    return;
-  }
-
-  if(!confirm("GERAR UMA OS A PARTIR DESTE ORÇAMENTO?")) return;
-
+async function bioEnable(){
   try{
-
-    const number = await nextNumber("os");
-    const batch = db.batch();
-
-    batch.set(db.collection("ordens_servico").doc(),{
-      numero:number,
-      dentistaId:quote.dentistaId,
-      dentistaNome:quote.dentistaNome||"",
-      paciente:quote.paciente,
-      cpfPaciente:quote.cpfPaciente||"",
-      data:today(),
-      status:"RECEBIDO",
-      previsao:"",
-      vencimento:"",
-      itens:quote.itens||[],
-      pagamentos:[],
-      observacoes:quote.observacoes||quote.obs||"",
-      orcNum:quote.numero,
-      criadoEm:timestamp()
+    const cred = await navigator.credentials.create({
+      publicKey:{
+        challenge: rand(32),
+        rp:{ name:"Gastos no Cartão" },
+        user:{ id: rand(16), name:"usuario", displayName:"Usuário" },
+        pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+        authenticatorSelection:{ authenticatorAttachment:"platform", userVerification:"required" },
+        timeout:60000,
+        attestation:"none"
+      }
     });
-
-    batch.update(db.collection("orcamentos").doc(id),{
-      status:"APROVADO",
-      osNum:number
+    if(cred){
+      store.set(LS_BIO, b64(cred.rawId));
+      store.del(LS_BIO_NO);
+      toast("Biometria ativada neste aparelho.");
+      refreshBioUi();
+      return true;
+    }
+  }catch(e){
+    console.warn("Biometria não ativada:", e);
+    toast("Não foi possível ativar a biometria.");
+  }
+  return false;
+}
+async function bioAuth(){
+  const id = store.get(LS_BIO);
+  if(!id) return false;
+  try{
+    const res = await navigator.credentials.get({
+      publicKey:{
+        challenge: rand(32),
+        allowCredentials:[{ type:"public-key", id: unb64(id), transports:["internal"] }],
+        userVerification:"required",
+        timeout:60000
+      }
     });
-
-    await batch.commit();
-
-    dialog.close();
-    toast("OS "+number+" CRIADA COM SUCESSO");
-
-  }catch(err){
-    console.error(err);
-    toast("ERRO AO GERAR OS: "+err.message);
+    return !!res;
+  }catch(e){
+    return false;
   }
 }
-
-/* =========================================================
-   IMPRESSÃO
-========================================================= */
-function printDocument(type,id){
-
-  const source = type==="order" ? state.orders : state.quotes;
-  const o = source.find(x=>x.id===id);
-  if(!o) return;
-
-  normalizeOrder(o);
-
-  const isOrder = type==="order";
-  const dentist = state.dentists.find(d=>d.id===o.dentistaId)||{};
-  const items = o.itens||[];
-  const lab = state.lab||{};
-
-  $("#print-area").innerHTML = `
-    <div class="print-page">
-
-      <div class="print-header">
-        <h1>${esc(lab.nome||"LABORATÓRIO HARMONIA FUNCIONAL")}</h1>
-        <p>
-          ${[lab.cnpj?"CNPJ: "+lab.cnpj:"",lab.tel||"",lab.end||""]
-            .filter(Boolean).map(esc).join(" | ")}
-        </p>
-      </div>
-
-      <div class="print-title">
-        ${isOrder?"ORDEM DE SERVIÇO Nº ":"ORÇAMENTO Nº "}${esc(o.numero)}
-      </div>
-
-      <table class="print-info">
-        <tr>
-          <td>DENTISTA</td>
-          <td>
-            ${esc(dentist.nome||o.dentistaNome||"-")}
-            ${dentist.cro?" — CRO "+esc(dentist.cro):""}
-            ${dentist.cpf?" — CPF "+esc(maskCPF(dentist.cpf)):""}
-          </td>
-        </tr>
-        <tr>
-          <td>PACIENTE</td>
-          <td>${esc(o.paciente)}${o.cpfPaciente?" — CPF "+esc(maskCPF(o.cpfPaciente)):""}</td>
-        </tr>
-        ${isOrder ? `
-          <tr><td>ETAPA</td><td>${esc(o.status)}</td></tr>
-          <tr><td>PREVISÃO DE ENTREGA</td><td>${dateBR(o.previsao)}</td></tr>
-          <tr><td>VENCIMENTO</td><td>${dateBR(o.vencimento)}</td></tr>
-        ` : `
-          <tr><td>DATA</td><td>${dateBR(o.data)}</td></tr>
-          <tr><td>VALIDADE</td><td>${o.validade||30} DIAS CORRIDOS (ATÉ ${dateBR(addDays(o.data,o.validade||30))})</td></tr>
-        `}
-      </table>
-
-      <table class="print-items">
-        <thead>
-          <tr>
-            <th>DESCRIÇÃO</th><th>COR / DENTES</th><th>QTD</th>
-            <th>UNITÁRIO</th><th>TOTAL</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${items.map(i=>`
-            <tr>
-              <td>${esc(i.descricao||i.d||"")}</td>
-              <td>${esc(i.cor||"")}</td>
-              <td>${i.quantidade||i.q||1}</td>
-              <td>${money(i.valor||i.v||0)}</td>
-              <td>${money((i.quantidade||i.q||1)*(i.valor||i.v||0))}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-
-      <div class="print-total">
-        <div><span>TOTAL</span><span>${money(o.total)}</span></div>
-        ${isOrder ? `
-          <div><span>PAGO</span><span>${money(o.pago)}</span></div>
-          <div><span>SALDO</span><span>${money(o.saldo)}</span></div>
-        ` : ""}
-      </div>
-
-      ${o.observacoes||o.obs ? `
-        <p style="margin-top:15px">
-          <b>OBSERVAÇÕES:</b> ${esc(o.observacoes||o.obs)}
-        </p>` : ""}
-
-      <div class="print-signatures">
-        <div class="signature">LABORATÓRIO</div>
-        <div class="signature">${isOrder?"DENTISTA":"APROVAÇÃO DO DENTISTA"}</div>
-      </div>
-
-    </div>`;
-
-  /* Abre a caixa nativa de impressão (impressora, Salvar como PDF, etc.) */
-  setTimeout(()=>window.print(),100);
+function bioDisable(){
+  store.del(LS_BIO);
+  store.set(LS_BIO_NO, "1");
+  toast("Biometria desativada. O PIN continua valendo.");
+  refreshBioUi();
+}
+function refreshBioUi(){
+  const ativa = !!store.get(LS_BIO);
+  $("btnBioLock").hidden = !(bioOk && ativa);
+  const b = $("btnBio");
+  if(!bioOk){ b.hidden = true; return; }
+  b.hidden = false;
+  b.textContent = ativa ? "Desativar biometria neste aparelho" : "Ativar biometria neste aparelho";
 }
 
-/* =========================================================
-   RELATÓRIO FINANCEIRO
-========================================================= */
-function docDate(o){
-  if(o.data) return o.data;
-  const ms = createdTime(o);
-  return ms ? new Date(ms-new Date(ms).getTimezoneOffset()*60000).toISOString().slice(0,10) : "";
+/* ===================== Tela de PIN ===================== */
+let entered = "";
+function updateDots(){
+  document.querySelectorAll("#dots i").forEach((d,i) => d.classList.toggle("on", i < entered.length));
 }
+function press(d){
+  if($("lock").hidden || entered.length >= 4) return;
+  $("lockMsg").textContent = "";
+  entered += d;
+  updateDots();
+  if(entered.length === 4) setTimeout(checkPin, 120);
+}
+function back(){
+  entered = entered.slice(0,-1);
+  updateDots();
+}
+function checkPin(){
+  if(entered === PIN){
+    entered = "";
+    updateDots();
+    unlock(true);
+  }else{
+    $("lockMsg").textContent = "PIN incorreto";
+    const box = $("lockBox");
+    box.classList.remove("shake");
+    void box.offsetWidth;
+    box.classList.add("shake");
+    entered = "";
+    updateDots();
+  }
+}
+async function unlock(offerBio){
+  $("lock").hidden = true;
+  $("app").hidden = false;
+  if(offerBio && bioOk && !store.get(LS_BIO) && !store.get(LS_BIO_NO)){
+    if(confirm("Ativar o desbloqueio por biometria neste aparelho?")){
+      await bioEnable();
+    }else{
+      store.set(LS_BIO_NO, "1");
+      refreshBioUi();
+    }
+  }
+}
+function lockApp(){
+  $("app").hidden = true;
+  $("lock").hidden = false;
+  $("modal").hidden = true;
+  entered = "";
+  updateDots();
+  $("lockMsg").textContent = "";
+}
+$("pad").addEventListener("click", e => {
+  const b = e.target.closest("button[data-k]");
+  if(b) press(b.dataset.k);
+});
+$("btnBack").addEventListener("click", back);
+$("btnBioLock").addEventListener("click", async () => {
+  if(await bioAuth()) unlock(false);
+  else $("lockMsg").textContent = "Biometria não reconhecida. Use o PIN.";
+});
+document.addEventListener("keydown", e => {
+  if($("lock").hidden) return;
+  if(/^\d$/.test(e.key)) press(e.key);
+  else if(e.key === "Backspace") back();
+});
+$("btnLock").addEventListener("click", lockApp);
 
-const payLabel = o => (o.atrasado && o.statusPagamento!=="PAGO")
-  ? o.statusPagamento+" / VENCIDO"
-  : o.statusPagamento;
+/* ===================== Formulários ===================== */
+function fillSelect(sel, items, placeholder){
+  sel.innerHTML = "";
+  if(placeholder){
+    const o = document.createElement("option");
+    o.value = ""; o.textContent = placeholder;
+    sel.appendChild(o);
+  }
+  items.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+fillSelect($("fCartao"), CARTOES, "Selecione o cartão");
+fillSelect($("fTipo"), TIPOS);
+fillSelect($("eCartao"), CARTOES);
+fillSelect($("eTipo"), TIPOS);
+attachMask($("fValor"));
+attachMask($("eValor"));
 
-function readReportFilters(){
+function resetForm(){
+  $("fCartao").value = "";
+  $("fTipo").value = "Crédito";
+  $("fDesc").value = "";
+  $("fValor").value = "";
+  $("fObs").value = "";
+  $("fData").value = todayStr();
+}
+resetForm();
+
+function readForm(p){
   return {
-    de:getField("de"),
-    ate:getField("ate"),
-    dentista:getField("dentistaId"),
-    situacao:getField("situacao")
+    cartao: $(p+"Cartao").value,
+    tipo: $(p+"Tipo").value,
+    descricao: $(p+"Desc").value.trim(),
+    valor: digitsToCents($(p+"Valor").value),
+    obs: $(p+"Obs").value.trim(),
+    data: $(p+"Data").value
   };
 }
-
-function reportRows(f){
-  return state.orders.filter(o=>{
-    const d = docDate(o);
-    if(f.de && (!d || d<f.de)) return false;
-    if(f.ate && (!d || d>f.ate)) return false;
-    if(f.dentista && o.dentistaId!==f.dentista) return false;
-    if(f.situacao==="VENCIDO") return o.atrasado;
-    if(f.situacao && o.statusPagamento!==f.situacao) return false;
-    return true;
-  }).sort((a,b)=>
-    docDate(a).localeCompare(docDate(b)) || String(a.numero).localeCompare(String(b.numero))
-  );
+function validate(o){
+  if(!o.cartao) return "Selecione o cartão.";
+  if(!o.descricao) return "Informe a descrição.";
+  if(!o.valor) return "Informe o valor.";
+  if(!o.data) return "Informe a data.";
+  return "";
 }
 
-function reportBody(rows){
+$("btnSalvar").addEventListener("click", () => {
+  const o = readForm("f");
+  const err = validate(o);
+  if(err){ toast(err); return; }
+  o.criadoEm = Date.now();
+  const r = push(dbRef);
+  set(r, o).then(() => toast("Gasto salvo.")).catch(onErr);
+  resetForm();
+});
 
-  if(!rows.length)
-    return `<div class="card empty">NENHUM REGISTRO PARA OS FILTROS INFORMADOS.</div>`;
+/* ===================== Dados e renderização ===================== */
+let dados = {};
+let carregado = false;
+const hoje = new Date();
+let viewY = hoje.getFullYear();
+let viewM = hoje.getMonth(); // 0-11
 
-  const sum = k => rows.reduce((s,o)=>s+o[k],0);
+function lista(){
+  return Object.entries(dados)
+    .filter(([id,v]) => v && typeof v === "object")
+    .map(([id,v]) => Object.assign({ id }, v));
+}
 
-  const groups = {};
-  rows.forEach(o=>{
-    const g = groups[dentistName(o)] ||= {n:0,total:0,pago:0,saldo:0};
-    g.n++; g.total+=o.total; g.pago+=o.pago; g.saldo+=o.saldo;
+function rowHtml(e, mostraCartao){
+  const tipoCls = e.tipo === "Débito" ? "deb" : "cre";
+  const meta = fmtDate(e.data) + (mostraCartao ? " · " + esc(e.cartao) : "");
+  return '<div class="row" role="button" tabindex="0" data-id="' + esc(e.id) + '">' +
+    '<div class="r-main">' +
+      '<div class="r-desc">' + esc(e.descricao) + '</div>' +
+      '<div class="r-meta">' + meta + ' <span class="badge ' + tipoCls + '">' + esc(e.tipo) + '</span></div>' +
+      (e.obs ? '<div class="r-obs">' + esc(e.obs) + '</div>' : '') +
+    '</div>' +
+    '<div class="r-val">' + brl(e.valor || 0) + '</div>' +
+  '</div>';
+}
+
+function renderRecentes(){
+  const box = $("recentes");
+  if(!carregado){ box.innerHTML = '<div class="empty">Carregando...</div>'; return; }
+  const arr = lista().sort((a,b) => (b.criadoEm||0) - (a.criadoEm||0)).slice(0,10);
+  if(!arr.length){ box.innerHTML = '<div class="empty">Nenhum gasto lançado ainda.</div>'; return; }
+  box.innerHTML = arr.map(e => rowHtml(e, true)).join("");
+}
+
+function nomeMes(y,m){
+  const s = new Date(y,m,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function renderRelatorio(){
+  $("mLabel").textContent = nomeMes(viewY, viewM);
+  const box = $("relatorio");
+  if(!carregado){ box.innerHTML = '<div class="empty">Carregando...</div>'; return; }
+
+  const ym = viewY + "-" + pad2(viewM+1);
+  const doMes = lista().filter(e => typeof e.data === "string" && e.data.startsWith(ym));
+
+  // ordem: cartões da lista primeiro, depois qualquer outro nome que exista no banco
+  const extras = [];
+  doMes.forEach(e => {
+    if(CARTOES.indexOf(e.cartao) === -1 && extras.indexOf(e.cartao) === -1) extras.push(e.cartao);
   });
+  const ordem = CARTOES.concat(extras);
 
-  const summary = Object.entries(groups)
-    .sort((a,b)=>a[0].localeCompare(b[0],"pt-BR"));
-
-  return `
-  <div class="rpt">
-    <table>
-      <thead>
-        <tr>
-          <th>OS</th><th>DATA</th><th>PACIENTE</th><th>DENTISTA</th><th>VENC.</th>
-          <th class="num">TOTAL</th><th class="num">PAGO</th><th class="num">SALDO</th><th>SITUAÇÃO</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(o=>`
-          <tr>
-            <td><b>${esc(o.numero)}</b></td>
-            <td>${dateBR(docDate(o))}</td>
-            <td>${esc(o.paciente)}</td>
-            <td>${esc(dentistName(o))}</td>
-            <td>${dateBR(o.vencimento)}</td>
-            <td class="num">${money(o.total)}</td>
-            <td class="num">${money(o.pago)}</td>
-            <td class="num">${money(o.saldo)}</td>
-            <td>${esc(payLabel(o))}</td>
-          </tr>`).join("")}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="5">TOTAL (${rows.length} OS)</td>
-          <td class="num">${money(sum("total"))}</td>
-          <td class="num">${money(sum("pago"))}</td>
-          <td class="num">${money(sum("saldo"))}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <h4>RESUMO POR DENTISTA</h4>
-    <table>
-      <thead>
-        <tr>
-          <th>DENTISTA</th><th class="num">OS</th>
-          <th class="num">TOTAL</th><th class="num">PAGO</th><th class="num">SALDO</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${summary.map(([name,g])=>`
-          <tr>
-            <td>${esc(name)}</td>
-            <td class="num">${g.n}</td>
-            <td class="num">${money(g.total)}</td>
-            <td class="num">${money(g.pago)}</td>
-            <td class="num">${money(g.saldo)}</td>
-          </tr>`).join("")}
-      </tbody>
-    </table>
-  </div>`;
+  let html = "";
+  let totalGeral = 0;
+  ordem.forEach(nome => {
+    const itens = doMes
+      .filter(e => e.cartao === nome)
+      .sort((a,b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : (a.criadoEm||0) - (b.criadoEm||0)));
+    const total = itens.reduce((s,e) => s + (e.valor || 0), 0);
+    totalGeral += total;
+    html += '<div class="card">' +
+      '<div class="card-head"><h2>' + esc(nome || "Sem cartão") + '</h2><span>' + itens.length + ' lançamento(s)</span></div>' +
+      (itens.length ? itens.map(e => rowHtml(e, false)).join("") : '<div class="empty">Sem lançamentos neste mês.</div>') +
+      '<div class="card-total"><span>Total ' + esc(nome || "Sem cartão") + '</span><span>' + brl(total) + '</span></div>' +
+    '</div>';
+  });
+  html += '<div class="grand"><span>Total do mês</span><span>' + brl(totalGeral) + '</span></div>';
+  box.innerHTML = html;
 }
 
-function openReport(){
-
-  dialog.dataset.type = "report";
-  dialog.dataset.id = "";
-
-  const first = today().slice(0,8)+"01";
-
-  const body = `
-    <div class="grid">
-      ${field("de","DE (DATA DA OS)",first,"date")}
-      ${field("ate","ATÉ",today(),"date")}
-      ${selectField("dentistaId","DENTISTA",
-        [{value:"",text:"TODOS"},...state.dentists.map(d=>({value:d.id,text:d.nome}))],"")}
-      ${selectField("situacao","SITUAÇÃO DO PAGAMENTO",
-        [{value:"",text:"TODAS"},"PENDENTE","PARCIAL","PAGO","VENCIDO"],"")}
-    </div>
-    <div id="report-preview" style="margin-top:16px"></div>`;
-
-  openDialog("RELATÓRIO FINANCEIRO",body,`
-    <button class="primary" data-action="print-report">🖨 IMPRIMIR / PDF</button>
-    <button data-action="close-dialog">FECHAR</button>`);
-
-  runReport();
+function renderAll(){
+  renderRecentes();
+  renderRelatorio();
 }
 
-function runReport(){
-  const box = $("#report-preview");
-  if(box) box.innerHTML = reportBody(reportRows(readReportFilters()));
+onValue(dbRef, snap => {
+  dados = snap.val() || {};
+  carregado = true;
+  renderAll();
+}, err => {
+  console.error(err);
+  carregado = true;
+  dados = {};
+  renderAll();
+  toast("Sem permissão ou erro ao ler o Firebase. Verifique as regras do banco.");
+});
+
+onValue(ref(db, ".info/connected"), snap => {
+  const ok = snap.val() === true;
+  $("status").classList.toggle("ok", ok);
+  $("statusTxt").textContent = ok ? "Conectado" : "Sem conexão";
+});
+
+/* ===================== Navegação ===================== */
+function showTab(which){
+  const rel = which === "rel";
+  $("viewLancar").hidden = rel;
+  $("viewRel").hidden = !rel;
+  $("tabLancar").classList.toggle("active", !rel);
+  $("tabRel").classList.toggle("active", rel);
+  window.scrollTo(0,0);
 }
+$("tabLancar").addEventListener("click", () => showTab("lancar"));
+$("tabRel").addEventListener("click", () => showTab("rel"));
 
-function printReport(){
+$("mPrev").addEventListener("click", () => {
+  viewM--; if(viewM < 0){ viewM = 11; viewY--; }
+  renderRelatorio();
+});
+$("mNext").addEventListener("click", () => {
+  viewM++; if(viewM > 11){ viewM = 0; viewY++; }
+  renderRelatorio();
+});
 
-  const f = readReportFilters();
+/* ===================== Editar / excluir ===================== */
+let editId = null;
 
-  if(f.de && f.ate && f.de>f.ate){
-    toast("A DATA INICIAL NÃO PODE SER MAIOR QUE A FINAL.");
-    return;
-  }
-
-  const rows = reportRows(f);
-
-  if(!rows.length){
-    toast("NENHUM REGISTRO PARA IMPRIMIR.");
-    return;
-  }
-
-  const lab = state.lab||{};
-  const dentist = f.dentista
-    ? (state.dentists.find(d=>d.id===f.dentista)?.nome||"-")
-    : "TODOS";
-
-  $("#print-area").innerHTML = `
-    <div class="print-page">
-
-      <div class="print-header">
-        <h1>${esc(lab.nome||"LABORATÓRIO HARMONIA FUNCIONAL")}</h1>
-        <p>
-          ${[lab.cnpj?"CNPJ: "+lab.cnpj:"",lab.tel||"",lab.end||""]
-            .filter(Boolean).map(esc).join(" | ")}
-        </p>
-      </div>
-
-      <div class="print-title">RELATÓRIO FINANCEIRO</div>
-
-      <table class="print-info">
-        <tr><td>PERÍODO</td><td>${f.de?dateBR(f.de):"INÍCIO"} A ${f.ate?dateBR(f.ate):"HOJE"}</td></tr>
-        <tr><td>DENTISTA</td><td>${esc(dentist)}</td></tr>
-        <tr><td>SITUAÇÃO</td><td>${esc(f.situacao||"TODAS")}</td></tr>
-        <tr><td>EMITIDO EM</td><td>${dateBR(today())}</td></tr>
-      </table>
-
-      ${reportBody(rows)}
-    </div>`;
-
-  setTimeout(()=>window.print(),100);
-}
-
-/* =========================================================
-   EVENTOS
-========================================================= */
-document.addEventListener("click",async event=>{
-
-  const el = event.target.closest("[data-action]");
-  if(!el) return;
-
-  const action = el.dataset.action;
-
-  /* Botões dentro de uma linha clicável: executam só a própria ação */
-  if(el.tagName==="BUTTON") event.stopPropagation();
-
-  const guarded = async fn=>{
-    el.disabled = true;
-    try{ await fn(); }finally{ el.disabled = false; }
-  };
-
-  try{
-
-    switch(action){
-
-      case "logout": await auth.signOut(); break;
-
-      case "config": openConfig(); break;
-
-      case "tab":
-        state.tab = el.dataset.tab;
-        state.search = "";
-        state.filter = "";
-        render();
-        break;
-
-      case "new-order": openDocument("order"); break;
-      case "new-quote": openDocument("quote"); break;
-      case "new-dentist": openDentist(); break;
-
-      case "edit": openDocument(el.dataset.type,el.dataset.id); break;
-      case "edit-dentist": openDentist(el.dataset.id); break;
-
-      case "close-dialog": dialog.close(); break;
-
-      case "add-item":
-        $("#items").insertAdjacentHTML("beforeend",itemRow({quantidade:1}));
-        $$("#items .item-row:last-child input")[0]?.focus();
-        break;
-
-      case "add-payment":
-        $("#payments").insertAdjacentHTML("beforeend",paymentRow({data:today(),forma:"PIX"}));
-        calculateDialog();
-        break;
-
-      case "remove-row":
-        el.closest(".item-row,.payment-row")?.remove();
-        calculateDialog();
-        break;
-
-      case "save-document": await guarded(saveDocument); break;
-      case "save-dentist": await guarded(saveDentist); break;
-      case "save-config": await guarded(saveConfig); break;
-      case "save-payment": await guarded(savePayment); break;
-
-      case "receive": openReceive(el.dataset.id); break;
-
-      case "delete":
-        await deleteRecord(el.dataset.type,el.dataset.id);
-        break;
-
-      case "delete-dentist":
-        await deleteRecord("dentist",el.dataset.id);
-        break;
-
-      case "generate-order": await generateOrder(el.dataset.id); break;
-
-      case "print": printDocument(el.dataset.type,el.dataset.id); break;
-
-      case "report": openReport(); break;
-      case "print-report": printReport(); break;
+function openEdit(id){
+  const e = dados[id];
+  if(!e) return;
+  editId = id;
+  // garante que o cartão/tipo salvo exista na lista do modal
+  [["eCartao", e.cartao], ["eTipo", e.tipo]].forEach(([sel, val]) => {
+    const s = $(sel);
+    if(val && !Array.from(s.options).some(o => o.value === val)){
+      const o = document.createElement("option");
+      o.value = val; o.textContent = val;
+      s.appendChild(o);
     }
+  });
+  $("eCartao").value = e.cartao || CARTOES[0];
+  $("eTipo").value = e.tipo || "Crédito";
+  $("eDesc").value = e.descricao || "";
+  $("eValor").value = maskCents(e.valor || 0);
+  $("eObs").value = e.obs || "";
+  $("eData").value = e.data || todayStr();
+  $("modal").hidden = false;
+}
+function closeEdit(){
+  $("modal").hidden = true;
+  editId = null;
+}
 
-  }catch(err){
-    console.error(err);
-    toast("ERRO: "+err.message);
+function onRowActivate(ev){
+  const row = ev.target.closest("[data-id]");
+  if(row) openEdit(row.dataset.id);
+}
+$("recentes").addEventListener("click", onRowActivate);
+$("relatorio").addEventListener("click", onRowActivate);
+function onRowKey(ev){
+  if(ev.key === "Enter" || ev.key === " "){
+    const row = ev.target.closest("[data-id]");
+    if(row){ ev.preventDefault(); openEdit(row.dataset.id); }
   }
+}
+$("recentes").addEventListener("keydown", onRowKey);
+$("relatorio").addEventListener("keydown", onRowKey);
+
+$("eSalvar").addEventListener("click", () => {
+  if(!editId) return;
+  const o = readForm("e");
+  const err = validate(o);
+  if(err){ toast(err); return; }
+  const id = editId;
+  update(ref(db, NODE + "/" + id), o).then(() => toast("Alterações salvas.")).catch(onErr);
+  closeEdit();
+});
+$("eExcluir").addEventListener("click", () => {
+  if(!editId) return;
+  if(!confirm("Excluir este gasto?")) return;
+  const id = editId;
+  remove(ref(db, NODE + "/" + id)).then(() => toast("Gasto excluído.")).catch(onErr);
+  closeEdit();
+});
+$("eCancelar").addEventListener("click", closeEdit);
+$("modal").addEventListener("click", e => { if(e.target === $("modal")) closeEdit(); });
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && !$("modal").hidden) closeEdit();
 });
 
-/* Linhas da tabela acessíveis por teclado (Enter / Espaço) */
-document.addEventListener("keydown",event=>{
-
-  if(event.key!=="Enter" && event.key!==" ") return;
-
-  const row = event.target.closest?.("tr[data-action]");
-
-  if(row && event.target===row){
-    event.preventDefault();
-    row.click();
-  }
+/* ===================== Biometria: botão no rodapé ===================== */
+$("btnBio").addEventListener("click", async () => {
+  if(store.get(LS_BIO)) bioDisable();
+  else await bioEnable();
 });
 
-/* =========================================================
-   INPUT / FILTROS
-========================================================= */
-document.addEventListener("input",event=>{
-
-  const el = event.target;
-
-  if(!event.isComposing) normalizeInput(el);
-
-  if(el.id==="search"){
-    state.search = el.value;
-    renderKeepingSearch();
+/* ===================== Início ===================== */
+(async function init(){
+  await checkBioSupport();
+  refreshBioUi();
+  if(bioOk && store.get(LS_BIO)){
+    // tenta biometria logo ao abrir; se falhar, o PIN continua disponível
+    if(await bioAuth()) unlock(false);
   }
-
-  if(el.matches('[data-item="valor"],[data-payment="valor"],[data-item="quantidade"]')){
-    calculateDialog();
-  }
-});
-
-document.addEventListener("change",event=>{
-
-  const el = event.target;
-
-  if(el.id==="filter"){
-    state.filter = el.value;
-    render();
-  }
-
-  if(dialog.open && dialog.dataset.type==="report" && el.closest("dialog")) runReport();
-
-  if(el.matches('[data-item="valor"],[data-payment="valor"],[data-item="quantidade"]')){
-    calculateDialog();
-  }
-});
-
-document.addEventListener("compositionend",event=>normalizeInput(event.target));
-
-/* =========================================================
-   ENTER AVANÇA PARA O PRÓXIMO CAMPO DENTRO DOS MODAIS
-========================================================= */
-document.addEventListener("keydown",event=>{
-
-  if(event.key!=="Enter" || event.isComposing) return;
-
-  const target = event.target;
-
-  if(target.tagName==="TEXTAREA" && !event.ctrlKey) return;
-  if(target.tagName==="BUTTON") return;
-
-  const dlg = target.closest("dialog");
-  if(!dlg) return;
-
-  event.preventDefault();
-
-  const fields = [...dlg.querySelectorAll("input:not([readonly]),select,textarea,button")]
-    .filter(x=>!x.disabled && x.offsetParent!==null && x.tabIndex>=0);
-
-  const next = fields[fields.indexOf(target)+1];
-  if(next) next.focus();
-});
-
-/* =========================================================
-   FORMATAÇÃO MONETÁRIA AO SAIR DO CAMPO
-========================================================= */
-document.addEventListener("focusout",event=>{
-
-  const el = event.target;
-
-  if(el.dataset?.mask) validateField(el);
-
-  if(el.matches('[data-item="valor"],[data-payment="valor"]') && el.value){
-    el.value = moneyInput(cents(el.value));
-  }
-});
+})();
 </script>
-
 </body>
 </html>
