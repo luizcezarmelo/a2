@@ -148,6 +148,7 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
   width:46px;height:46px;font-size:22px;background:#fff;color:var(--primary);
   border:1px solid var(--field);border-radius:6px;cursor:pointer;
 }
+.filter{margin-bottom:14px}
 .card-total{
   display:flex;justify-content:space-between;align-items:center;
   margin-top:10px;padding:10px 4px 0;border-top:2px solid var(--text);font-weight:700;
@@ -232,8 +233,12 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
           <select id="fCartao"></select>
         </div>
         <div class="field">
-          <label for="fTipo">Tipo</label>
+          <label for="fTipo">Forma de pagamento</label>
           <select id="fTipo"></select>
+        </div>
+        <div class="field">
+          <label for="fCat">Tipo</label>
+          <select id="fCat"></select>
         </div>
         <div class="field">
           <label for="fDesc">Descrição</label>
@@ -272,6 +277,10 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
         <div class="m-label" id="mLabel"></div>
         <button id="mNext" aria-label="Próximo mês">&#8250;</button>
       </div>
+      <div class="field filter">
+        <label for="rCat">Mostrar tipo</label>
+        <select id="rCat"></select>
+      </div>
       <div id="relatorio"></div>
     </section>
   </main>
@@ -286,8 +295,12 @@ main{max-width:680px;margin:0 auto;padding:14px 12px calc(28px + env(safe-area-i
       <select id="eCartao"></select>
     </div>
     <div class="field">
-      <label for="eTipo">Tipo</label>
+      <label for="eTipo">Forma de pagamento</label>
       <select id="eTipo"></select>
+    </div>
+    <div class="field">
+      <label for="eCat">Tipo</label>
+      <select id="eCat"></select>
     </div>
     <div class="field">
       <label for="eDesc">Descrição</label>
@@ -330,15 +343,30 @@ const firebaseConfig = {
   appId: "1:270308100761:web:ae34fde6d5ae86b67b0608"
 };
 const NODE = "gastos_cartao";
+const NODE_TIPOS = "gastos_tipos";
 const PIN = "1346";
 const CARTOES = ["Nubank", "C6", "Diversos"];
-const TIPOS = ["Crédito", "Débito"];
+const FORMAS = ["Crédito", "Débito"];            // antigo "Tipo" (campo "tipo" no banco)
+const CATS_BASE = ["Alimentação", "Farmácia", "Gasolina", "Uber", "Diversos"];
+const CAT_DEFAULT = "Alimentação";
+const NOVO = "__novo__";
+const TODOS = "__todos__";
 const LS_BIO = "gc_bio_id";
 const LS_BIO_NO = "gc_bio_recusou";
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbRef = ref(db, NODE);
+const tiposRef = ref(db, NODE_TIPOS);
+
+/* ===================== Estado ===================== */
+let dados = {};
+let carregado = false;
+let customCats = [];
+let filtroCat = CAT_DEFAULT;
+const hoje = new Date();
+let viewY = hoje.getFullYear();
+let viewM = hoje.getMonth(); // 0-11
 
 /* ===================== Utilidades ===================== */
 const $ = id => document.getElementById(id);
@@ -538,7 +566,21 @@ document.addEventListener("keydown", e => {
 });
 $("btnLock").addEventListener("click", lockApp);
 
-/* ===================== Formulários ===================== */
+/* ===================== Tipos (categorias) ===================== */
+function lista(){
+  return Object.entries(dados)
+    .filter(([id,v]) => v && typeof v === "object")
+    .map(([id,v]) => Object.assign({ id }, v));
+}
+function catOf(e){ return e.categoria || CAT_DEFAULT; }
+
+function allCats(){
+  const out = CATS_BASE.slice();
+  customCats.forEach(c => { if(out.indexOf(c) === -1) out.push(c); });
+  lista().forEach(e => { if(e.categoria && out.indexOf(e.categoria) === -1) out.push(e.categoria); });
+  return out;
+}
+
 function fillSelect(sel, items, placeholder){
   sel.innerHTML = "";
   if(placeholder){
@@ -552,16 +594,68 @@ function fillSelect(sel, items, placeholder){
     sel.appendChild(o);
   });
 }
+function addOpt(sel, value, text){
+  const o = document.createElement("option");
+  o.value = value; o.textContent = text;
+  sel.appendChild(o);
+}
+
+function refreshCatSelects(){
+  const cats = allCats();
+  ["fCat","eCat"].forEach(id => {
+    const s = $(id);
+    const cur = (s.value && s.value !== NOVO) ? s.value : CAT_DEFAULT;
+    fillSelect(s, cats);
+    addOpt(s, NOVO, "+ Novo tipo...");
+    s.value = cats.indexOf(cur) !== -1 ? cur : CAT_DEFAULT;
+    s.dataset.prev = s.value;
+  });
+  const r = $("rCat");
+  fillSelect(r, cats);
+  addOpt(r, TODOS, "Todos");
+  if(filtroCat !== TODOS && cats.indexOf(filtroCat) === -1) filtroCat = CAT_DEFAULT;
+  r.value = filtroCat;
+}
+
+function onCatChange(ev){
+  const s = ev.target;
+  if(s.value !== NOVO){ s.dataset.prev = s.value; return; }
+  const nome = (prompt("Nome do novo tipo:") || "").trim();
+  if(!nome){ s.value = s.dataset.prev || CAT_DEFAULT; return; }
+  const existente = allCats().find(c => c.toLowerCase() === nome.toLowerCase());
+  if(existente){
+    s.value = existente; s.dataset.prev = existente;
+    toast("Esse tipo já existe.");
+    return;
+  }
+  customCats.push(nome);
+  push(tiposRef, nome).catch(onErr);
+  refreshCatSelects();
+  s.value = nome; s.dataset.prev = nome;
+  toast("Tipo adicionado.");
+}
+$("fCat").addEventListener("change", onCatChange);
+$("eCat").addEventListener("change", onCatChange);
+
+$("rCat").addEventListener("change", e => {
+  filtroCat = e.target.value;
+  renderRelatorio();
+});
+
+/* ===================== Formulários ===================== */
 fillSelect($("fCartao"), CARTOES, "Selecione o cartão");
-fillSelect($("fTipo"), TIPOS);
+fillSelect($("fTipo"), FORMAS);
 fillSelect($("eCartao"), CARTOES);
-fillSelect($("eTipo"), TIPOS);
+fillSelect($("eTipo"), FORMAS);
+refreshCatSelects();
 attachMask($("fValor"));
 attachMask($("eValor"));
 
 function resetForm(){
   $("fCartao").value = "";
   $("fTipo").value = "Crédito";
+  $("fCat").value = CAT_DEFAULT;
+  $("fCat").dataset.prev = CAT_DEFAULT;
   $("fDesc").value = "";
   $("fValor").value = "";
   $("fObs").value = "";
@@ -570,9 +664,11 @@ function resetForm(){
 resetForm();
 
 function readForm(p){
+  const cat = $(p+"Cat").value;
   return {
     cartao: $(p+"Cartao").value,
-    tipo: $(p+"Tipo").value,
+    tipo: $(p+"Tipo").value,            // forma de pagamento
+    categoria: (cat && cat !== NOVO) ? cat : CAT_DEFAULT,
     descricao: $(p+"Desc").value.trim(),
     valor: digitsToCents($(p+"Valor").value),
     obs: $(p+"Obs").value.trim(),
@@ -597,22 +693,10 @@ $("btnSalvar").addEventListener("click", () => {
   resetForm();
 });
 
-/* ===================== Dados e renderização ===================== */
-let dados = {};
-let carregado = false;
-const hoje = new Date();
-let viewY = hoje.getFullYear();
-let viewM = hoje.getMonth(); // 0-11
-
-function lista(){
-  return Object.entries(dados)
-    .filter(([id,v]) => v && typeof v === "object")
-    .map(([id,v]) => Object.assign({ id }, v));
-}
-
+/* ===================== Renderização ===================== */
 function rowHtml(e, mostraCartao){
   const tipoCls = e.tipo === "Débito" ? "deb" : "cre";
-  const meta = fmtDate(e.data) + (mostraCartao ? " · " + esc(e.cartao) : "");
+  const meta = fmtDate(e.data) + (mostraCartao ? " · " + esc(e.cartao) : "") + " · " + esc(catOf(e));
   return '<div class="row" role="button" tabindex="0" data-id="' + esc(e.id) + '">' +
     '<div class="r-main">' +
       '<div class="r-desc">' + esc(e.descricao) + '</div>' +
@@ -642,7 +726,10 @@ function renderRelatorio(){
   if(!carregado){ box.innerHTML = '<div class="empty">Carregando...</div>'; return; }
 
   const ym = viewY + "-" + pad2(viewM+1);
-  const doMes = lista().filter(e => typeof e.data === "string" && e.data.startsWith(ym));
+  const doMes = lista().filter(e =>
+    typeof e.data === "string" && e.data.startsWith(ym) &&
+    (filtroCat === TODOS || catOf(e) === filtroCat)
+  );
 
   // ordem: cartões da lista primeiro, depois qualquer outro nome que exista no banco
   const extras = [];
@@ -665,11 +752,13 @@ function renderRelatorio(){
       '<div class="card-total"><span>Total ' + esc(nome || "Sem cartão") + '</span><span>' + brl(total) + '</span></div>' +
     '</div>';
   });
-  html += '<div class="grand"><span>Total do mês</span><span>' + brl(totalGeral) + '</span></div>';
+  const rotulo = filtroCat === TODOS ? "Total do mês" : "Total do mês · " + esc(filtroCat);
+  html += '<div class="grand"><span>' + rotulo + '</span><span>' + brl(totalGeral) + '</span></div>';
   box.innerHTML = html;
 }
 
 function renderAll(){
+  refreshCatSelects();
   renderRecentes();
   renderRelatorio();
 }
@@ -685,6 +774,13 @@ onValue(dbRef, snap => {
   renderAll();
   toast("Sem permissão ou erro ao ler o Firebase. Verifique as regras do banco.");
 });
+
+onValue(tiposRef, snap => {
+  const v = snap.val() || {};
+  customCats = Object.values(v).filter(x => typeof x === "string" && x.trim());
+  refreshCatSelects();
+  renderRelatorio();
+}, err => console.warn("Não foi possível ler os tipos:", err));
 
 onValue(ref(db, ".info/connected"), snap => {
   const ok = snap.val() === true;
@@ -720,17 +816,17 @@ function openEdit(id){
   const e = dados[id];
   if(!e) return;
   editId = id;
-  // garante que o cartão/tipo salvo exista na lista do modal
+  // garante que o cartão/forma salvos existam na lista do modal
   [["eCartao", e.cartao], ["eTipo", e.tipo]].forEach(([sel, val]) => {
     const s = $(sel);
     if(val && !Array.from(s.options).some(o => o.value === val)){
-      const o = document.createElement("option");
-      o.value = val; o.textContent = val;
-      s.appendChild(o);
+      addOpt(s, val, val);
     }
   });
   $("eCartao").value = e.cartao || CARTOES[0];
   $("eTipo").value = e.tipo || "Crédito";
+  $("eCat").value = catOf(e);
+  $("eCat").dataset.prev = $("eCat").value;
   $("eDesc").value = e.descricao || "";
   $("eValor").value = maskCents(e.valor || 0);
   $("eObs").value = e.obs || "";
